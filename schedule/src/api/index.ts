@@ -63,15 +63,21 @@ export async function fetchShareCode(timetableIndex: number): Promise<string> {
   return data.code;
 }
 
-/** 用课表码导入为新课表，返回全部课表与新课表下标 */
-export async function importTimetable(code: string): Promise<{
+/** 用课表码导入课表
+ * mode=copy 仅拷贝数据（独立课表，之后互不影响）
+ * mode=sync 同步导入（引用源课表，源课表变化实时跟随）
+ */
+export async function importTimetable(
+  code: string,
+  mode: "copy" | "sync" = "copy",
+): Promise<{
   timetables: TimetableEntry[];
   index: number;
 }> {
   const res = await fetch("/api/timetables/import", {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, mode }),
   });
   return handle<{ timetables: TimetableEntry[]; index: number }>(res);
 }

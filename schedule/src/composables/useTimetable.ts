@@ -544,6 +544,10 @@ function isSegmentInWeek(seg: CourseSegment, week: number): boolean {
 export interface TimetableEntry {
   owner: string;
   enrollment: StudentEnrollment;
+  /** 同步导入：sourceId 指向被同步的源课表；syncFrom 为源课表信息（后端返回） */
+  sourceId?: number | null;
+  syncEnabled?: boolean;
+  syncFrom?: { id: number; owner: string } | null;
 }
 
 /**
@@ -719,6 +723,11 @@ export const activeEnrollment = computed(
 /** 当前课表标签 */
 export const currentOwner = computed(
   () => timetables.value[currentTimetableIndex.value]!.owner,
+);
+
+/** 当前课表完整对象（含同步标记等元信息） */
+export const activeTimetable = computed(
+  () => timetables.value[currentTimetableIndex.value] ?? null,
 );
 
 /** 切换课表：循环切换；只有一份时不生效 */

@@ -64,6 +64,7 @@ class ImportPayload(BaseModel):
     """导入课表码请求"""
 
     code: str
+    mode: str = "copy"  # copy 仅拷贝数据 / sync 同步导入（实时跟随源课表）
 
 
 class OrgCreateIn(BaseModel):

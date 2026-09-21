@@ -35,6 +35,7 @@
         <div class="tt-info">
           <div class="tt-owner">
             {{ t.owner }}
+            <UiTag v-if="t.syncEnabled" type="info" class="tt-sync-tag">同步</UiTag>
             <span v-if="i === currentTimetableIndex" class="tt-current">当前</span>
           </div>
           <div class="tt-sub">
@@ -79,9 +80,19 @@
       <UiInput
         v-model="importCode"
         type="textarea"
-        :rows="3"
+        :rows="2"
         placeholder="粘贴对方分享的课表码（UUID）"
       />
+      <div class="import-mode">
+        <div class="mode-label">导入方式</div>
+        <UiRadioGroup
+          v-model="importMode"
+          :options="[
+            { label: '仅拷贝数据（独立，互不影响）', value: 'copy' },
+            { label: '同步导入（源课表变化实时更新）', value: 'sync' },
+          ]"
+        />
+      </div>
       <template #footer>
         <div class="import-footer">
           <UiButton variant="ghost" @click="importShow = false">取消</UiButton>
@@ -118,6 +129,8 @@ import {
   UiButton,
   UiInput,
   UiModal,
+  UiRadioGroup,
+  UiTag,
   uiMessage,
 } from "@/components/ui";
 import { ChevronLeft, Download, Share2, Trash2 } from "lucide-vue-next";
@@ -132,6 +145,7 @@ const router = useRouter();
 
 const importShow = ref(false);
 const importCode = ref("");
+const importMode = ref<"copy" | "sync">("copy");
 const importing = ref(false);
 const confirmDelete = ref(-1);
 
@@ -179,10 +193,12 @@ async function doImport() {
   }
   importing.value = true;
   try {
-    const data = await importTimetable(code);
+    const data = await importTimetable(code, importMode.value);
     timetables.value = data.timetables;
     currentTimetableIndex.value = data.index;
-    uiMessage.success("导入成功，已切换到新课表");
+    uiMessage.success(
+      importMode.value === "sync" ? "同步导入成功，源课表变化会自动更新" : "导入成功，已切换到新课表",
+    );
     importShow.value = false;
     router.push("/");
   } catch (e) {
@@ -342,5 +358,16 @@ async function doDelete(i: number) {
     width: 100vw;
     padding: 0.05rem 0.12rem;
   }
+}
+.import-mode {
+  margin-top: 0.1rem;
+  padding: 0.08rem 0.1rem;
+  background: var(--ui-bg);
+  border-radius: var(--ui-radius);
+}
+.mode-label {
+  font-size: 0.08rem;
+  color: var(--ui-text-3);
+  margin-bottom: 0.05rem;
 }
 </style>

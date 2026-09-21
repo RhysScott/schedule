@@ -1,6 +1,6 @@
 """SQLAlchemy ORM 模型：课表 / 课程 / 时间段片段"""
 
-from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship, DeclarativeBase
 
 
@@ -27,6 +27,9 @@ class Timetable(Base):
     term = Column(String(64), default="")
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     share_code = Column(String(36), unique=True, index=True, nullable=True)
+    # 同步导入：source_id 指向被同步的源课表；None 表示普通/拷贝课表
+    source_id = Column(Integer, ForeignKey("timetables.id"), nullable=True)
+    sync_enabled = Column(Boolean, default=False, nullable=False)
 
     courses = relationship(
         "Course",

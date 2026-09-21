@@ -63,6 +63,12 @@ def _ensure_column(table: str, column: str, ddl: str) -> None:
 _ensure_column(
     "timetables", "share_code", "ALTER TABLE timetables ADD COLUMN share_code VARCHAR(36)"
 )
+_ensure_column(
+    "timetables", "source_id", "ALTER TABLE timetables ADD COLUMN source_id INTEGER"
+)
+_ensure_column(
+    "timetables", "sync_enabled", "ALTER TABLE timetables ADD COLUMN sync_enabled BOOLEAN DEFAULT 0"
+)
 
 
 def _backfill_share_codes() -> None:
@@ -150,17 +156,28 @@ def _course_to_dict(course: Course) -> Dict[str, Any]:
     }
 
 
-def _timetable_to_dict(t: Timetable) -> Dict[str, Any]:
+def _timetable_to_dict(t: Timetable, db: Session) -> Dict[str, Any]:
+    """序列化课表；同步导入（sync_enabled）时课程实时取自源课表"""
+    courses = t.courses
+    sync_from = None
+    if t.sync_enabled and t.source_id:
+        src = db.get(Timetable, t.source_id)
+        if src is not None:
+            courses = src.courses
+            sync_from = {"id": src.id, "owner": src.owner}
     return {
         "id": t.id,
         "userId": t.user_id,
         "owner": t.owner,
         "shareCode": t.share_code or "",
+        "sourceId": t.source_id,
+        "syncEnabled": bool(t.sync_enabled),
+        "syncFrom": sync_from,
         "enrollment": {
             "studentId": t.student_id,
             "studentName": t.student_name,
             "term": t.term,
-            "courses": [_course_to_dict(c) for c in t.courses],
+            "courses": [_course_to_dict(c) for c in courses],
         },
     }
 
@@ -170,6 +187,7 @@ def _apply_course(db: Session, timetable: Timetable, payload: Any, course: Cours
     if course is None:
         course = Course()
         course.timetable = timetable
+        db.add(course)  # 显式入 session，否则 cascade 可能不生效
     course.course_name = payload.courseName
     course.credit = payload.credit
     course.teacher = payload.teacher
@@ -342,7 +360,7 @@ def login(payload: LoginIn) -> Dict[str, Any]:
 def list_timetables() -> List[Dict[str, Any]]:
     with SessionLocal() as db:
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
-        return [_timetable_to_dict(t) for t in rows]
+        return [_timetable_to_dict(t, db) for t in rows]
 
 
 @app.post("/api/timetables")
@@ -361,7 +379,7 @@ def create_timetable(payload: TimetableIn) -> List[Dict[str, Any]]:
         db.add(t)
         db.commit()
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
-        return [_timetable_to_dict(x) for x in rows]
+        return [_timetable_to_dict(x, db) for x in rows]
 
 
 @app.delete("/api/timetables/{index}")
@@ -373,7 +391,7 @@ def delete_timetable(index: int) -> List[Dict[str, Any]]:
         db.delete(rows[index])
         db.commit()
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
-        return [_timetable_to_dict(x) for x in rows]
+        return [_timetable_to_dict(x, db) for x in rows]
 
 
 @app.post("/api/timetables/{index}/courses")
@@ -385,7 +403,7 @@ def add_course(index: int, payload: CoursePayload) -> List[Dict[str, Any]]:
         _apply_course(db, rows[index], payload.course)
         db.commit()
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
-        return [_timetable_to_dict(x) for x in rows]
+        return [_timetable_to_dict(x, db) for x in rows]
 
 
 @app.put("/api/timetables/{index}/courses/{student_course_id}")
@@ -406,7 +424,7 @@ def update_course(
         _apply_course(db, rows[index], payload.course, target)
         db.commit()
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
-        return [_timetable_to_dict(x) for x in rows]
+        return [_timetable_to_dict(x, db) for x in rows]
 
 
 @app.get("/api/timetables/{index}/code")
@@ -425,12 +443,16 @@ def share_code(index: int) -> Dict[str, str]:
 
 @app.post("/api/timetables/import")
 def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
-    """用课表码（UUID）导入：找到源课表复制为新课表"""
+    """用课表码（UUID）导入：
+    mode=copy 仅拷贝数据（独立课表）
+    mode=sync 同步导入（引用源课表，实时跟随更新）
+    """
     code = payload.code.strip()
+    mode = payload.mode or "copy"
     with SessionLocal() as db:
         src = db.scalar(select(Timetable).where(Timetable.share_code == code))
         if src is None:
-            # 兼容旧版 base64url 自包含码
+            # 兼容旧版 base64url 自包含码（只能拷贝）
             try:
                 data = _decode_code(code)
             except HTTPException:
@@ -446,8 +468,19 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
 
             for c in data.get("courses", []):
                 _apply_course(db, t, CourseIn.model_validate(c))
+        elif mode == "sync":
+            # 同步导入：不复制课程，记录源表引用，读取时实时展开
+            t = Timetable(
+                owner=(src.owner or "同步课表") + "·同步",
+                student_id=src.student_id,
+                student_name=src.student_name,
+                term=src.term,
+                share_code=str(uuid.uuid4()),
+                source_id=src.id,
+                sync_enabled=True,
+            )
         else:
-            # 复制源课表为新课表（保持导入语义：导入后新增一份）
+            # 仅拷贝：复制源课表为新课表（独立数据）
             t = Timetable(
                 owner=src.owner or "导入课表",
                 student_id=src.student_id,
@@ -461,7 +494,7 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
         db.commit()
         rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
         return {
-            "timetables": [_timetable_to_dict(x) for x in rows],
+            "timetables": [_timetable_to_dict(x, db) for x in rows],
             "index": len(rows) - 1,
         }
 

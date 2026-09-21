@@ -28,7 +28,10 @@
         </UiButton>
       </div>
       <div class="owner-area">
-        <span class="owner-tag">{{ currentOwner }}</span>
+        <span class="owner-tag">
+          {{ currentOwner }}
+          <span v-if="activeTimetable?.syncEnabled" class="sync-badge">同步</span>
+        </span>
         <UiButton
           variant="ghost"
           circle
@@ -106,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
 import { UiButton, uiMessage } from "@/components/ui";
 import {
@@ -123,6 +126,7 @@ import { addCourse, updateCourse } from "@/api";
 import type { StudentCourse } from "@/types/course";
 import {
   useTimetable,
+  activeTimetable,
   currentWeek,
   todayWeek,
   todayDayOfWeek,
@@ -284,7 +288,33 @@ function onAddClick() {
 const hasSinglePeriodCourse = weekSchedule.value.some((day) =>
   Object.values(day.courseMap).some((c) => c.startPeriod === c.endPeriod),
 );
-const rowHeight = hasSinglePeriodCourse ? "0.66rem" : "0.4rem";
+const mobileRowHeight = hasSinglePeriodCourse ? "0.66rem" : "0.4rem";
+
+/**
+ * PC 端（≥1024px）：行高按视口高度弹性均分，
+ * 课表正好填满剩余空间，卡片不会过高或过矮
+ */
+const isDesktop = ref(window.matchMedia("(min-width: 64em)").matches);
+const vh = ref(window.innerHeight);
+
+function updateViewport() {
+  isDesktop.value = window.matchMedia("(min-width: 64em)").matches;
+  vh.value = window.innerHeight;
+}
+window.addEventListener("resize", updateViewport);
+onBeforeUnmount(() => window.removeEventListener("resize", updateViewport));
+
+const rowHeight = computed(() => {
+  if (!isDesktop.value) return mobileRowHeight;
+  const rows = rowList.value.filter((r) => r.type !== "break").length;
+  const breakCount = rowList.value.length - rows;
+  if (!rows) return "0.4rem";
+  // 固定开销：顶栏 + 表头 + 午/晚休行 + 容器留白 + tabbar
+  const fixed = 1.5 + breakCount * 0.25 + 0.2;
+  const remBase = parseFloat(getComputedStyle(document.documentElement).fontSize) || 170;
+  const rem = Math.max(0.28, (vh.value / remBase - fixed) / rows);
+  return rem.toFixed(3);
+});
 
 // 连堂：该行处于某门课程的中间（非最后一行）时，隐藏底部边框，使课程视觉连续
 const isConnectingRow = (sIndex: number) => {
@@ -368,6 +398,15 @@ const isConnectingRow = (sIndex: number) => {
       background: #eafaf3;
       border-radius: 0.3rem;
       white-space: nowrap;
+
+      .sync-badge {
+        margin-left: 0.03rem;
+        font-size: 0.065rem;
+        color: #4a7fae;
+        background: #e9f2fb;
+        border-radius: 0.2rem;
+        padding: 0 0.03rem;
+      }
     }
 
     .switch-btn {
