@@ -94,7 +94,7 @@
         <Plus />
       </template>
     </UiButton>
-    <ImportModal :show="importShow" @update:show="importShow = $event" />
+    <ImportModal :show="importShow" @update:show="importShow = $event" @imported="onImported" />
     <!-- 添加/编辑课程弹窗 -->
     <CourseFormModal
       :show="courseModalShow"
@@ -284,6 +284,11 @@ async function handleCourseSave(payload: CourseFormPayload) {
 
 // 悬浮按钮：打开导入课表弹窗
 const importShow = ref(false);
+
+// 导入成功后切换到新导入的课表（导入即新建一张独立课表）
+function onImported(index: number) {
+  currentTimetableIndex.value = index;
+}
 
 // 存在单节课程时增高行，保证卡片文字完整不截断
 // 课表异步加载完成后需要重算，因此用 computed

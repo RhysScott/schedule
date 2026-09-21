@@ -61,7 +61,7 @@ import { uiMessage } from "@/components/ui";
 import { importJwData, importTimetable } from "@/composables/useTimetable";
 
 defineProps<{ show: boolean }>();
-const emit = defineEmits<{ "update:show": [v: boolean]; imported: [] }>();
+const emit = defineEmits<{ "update:show": [v: boolean]; imported: [index: number] }>();
 
 const tabs = [
   { key: "jw-url", label: "教务在线" },
@@ -92,9 +92,9 @@ async function importByJwLogin() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail ?? "教务抓取失败");
-    await importJwData(data);
+    const r = await importJwData(data);
     uiMessage.success("导入成功");
-    emit("imported");
+    emit("imported", r.index);
     emit("update:show", false);
   } catch (e) {
     uiMessage.error("导入失败：" + ((e as Error).message ?? String(e)));
@@ -118,9 +118,9 @@ function onFileChange(ev: Event) {
       } catch {
         throw new Error("文件不是有效 JSON");
       }
-      await importJwData(data);
+      const r = await importJwData(data);
       uiMessage.success("导入成功");
-      emit("imported");
+      emit("imported", r.index);
       emit("update:show", false);
     } catch (e) {
       uiMessage.error("导入失败：" + ((e as Error).message ?? String(e)));
@@ -140,9 +140,9 @@ function onFileChange(ev: Event) {
 async function importByCode() {
   loading.value = true;
   try {
-    await importTimetable(code.value.trim(), mode.value);
+    const r = await importTimetable(code.value.trim(), mode.value);
     uiMessage.success("导入成功");
-    emit("imported");
+    emit("imported", r.index);
     emit("update:show", false);
   } catch (e) {
     uiMessage.error("导入失败：" + ((e as Error).message ?? String(e)));
