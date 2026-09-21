@@ -25,6 +25,8 @@ class Timetable(Base):
     student_id = Column(String(64), default="")
     student_name = Column(String(64), default="")
     term = Column(String(64), default="")
+    term_start_date = Column(String(10), default="")
+    total_weeks = Column(Integer, default=16)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     share_code = Column(String(36), unique=True, index=True, nullable=True)
     # 同步导入：source_id 指向被同步的源课表；None 表示普通/拷贝课表

@@ -13,60 +13,10 @@
     </div>
 
     <div class="group">
-      <div class="group-title">学期设置</div>
-      <div class="row">
-        <span class="label">学期开始日期</span>
-        <input v-model="settings.termStartDate" type="date" class="date-input" />
-      </div>
-      <div class="row">
-        <span class="label">教学周总数</span>
-        <UiInputNumber v-model="totalWeeksModel" :min="1" :max="30" class="ctrl" />
-      </div>
+      <div class="group-title">显示设置</div>
       <div class="row">
         <span class="label">显示周末</span>
         <UiSwitch v-model="settings.showWeekend" class="ctrl" />
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-title">节次设置</div>
-      <div class="row">
-        <span class="label">每节课时长</span>
-        <span class="ctrl-wrap">
-          <UiInputNumber v-model="durationModel" :min="20" :max="120" class="ctrl" />
-          <span class="unit">分</span>
-        </span>
-      </div>
-      <div class="row">
-        <span class="label">课间时长</span>
-        <span class="ctrl-wrap">
-          <UiInputNumber v-model="breakModel" :min="0" :max="60" class="ctrl" />
-          <span class="unit">分</span>
-        </span>
-      </div>
-      <div class="row">
-        <span class="label">上午节数</span>
-        <UiInputNumber v-model="morningCountModel" :min="1" :max="10" class="ctrl" />
-      </div>
-      <div class="row">
-        <span class="label">下午节数</span>
-        <UiInputNumber v-model="afternoonCountModel" :min="1" :max="10" class="ctrl" />
-      </div>
-      <div class="row">
-        <span class="label">晚上节数</span>
-        <UiInputNumber v-model="nightCountModel" :min="1" :max="10" class="ctrl" />
-      </div>
-      <div class="row">
-        <span class="label">上午首节开始</span>
-        <UiTimePicker v-model="morningStart" class="ctrl" />
-      </div>
-      <div class="row">
-        <span class="label">下午首节开始</span>
-        <UiTimePicker v-model="afternoonStart" class="ctrl" />
-      </div>
-      <div class="row">
-        <span class="label">晚上首节开始</span>
-        <UiTimePicker v-model="nightStart" class="ctrl" />
       </div>
     </div>
 
@@ -97,110 +47,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { useRouter } from "vue-router";
-import {
-  UiButton,
-  UiInputNumber,
-  UiSwitch,
-  UiTimePicker,
-  uiMessage,
-} from "@/components/ui";
+import { UiButton, UiSwitch, uiMessage } from "@/components/ui";
 import { ChevronLeft } from "lucide-vue-next";
-import {
-  settings,
-  goToTodayWeek,
-  saveSettings,
-} from "@/composables/useTimetable";
+import { settings, saveSettings } from "@/composables/useTimetable";
 
 const router = useRouter();
-
 
 function goBack() {
   router.back();
 }
 
-// NInputNumber 值为 number | null，包装成非空模型
-function numModel(get: () => number, set: (v: number) => void) {
-  return computed({
-    get,
-    set: (v: number | null) => {
-      if (v !== null) set(v);
-    },
-  });
-}
-const totalWeeksModel = numModel(
-  () => settings.totalWeeks,
-  (v) => {
-    settings.totalWeeks = v;
-  },
-);
-const durationModel = numModel(
-  () => settings.durationOfEachPeriod,
-  (v) => {
-    settings.durationOfEachPeriod = v;
-  },
-);
-const breakModel = numModel(
-  () => settings.breakDuration,
-  (v) => {
-    settings.breakDuration = v;
-  },
-);
-const morningCountModel = numModel(
-  () => settings.numberOfMorningPeriods,
-  (v) => {
-    settings.numberOfMorningPeriods = v;
-  },
-);
-const afternoonCountModel = numModel(
-  () => settings.numberOfAfternoonPeriods,
-  (v) => {
-    settings.numberOfAfternoonPeriods = v;
-  },
-);
-const nightCountModel = numModel(
-  () => settings.numberOfNightPeriods,
-  (v) => {
-    settings.numberOfNightPeriods = v;
-  },
-);
-
-// 时间选择器用 "HH:mm" 字符串绑定
-const morningStart = computed({
-  get: () =>
-    `${String(settings.morningFirstStart.hour).padStart(2, "0")}:${String(
-      settings.morningFirstStart.minute,
-    ).padStart(2, "0")}`,
-  set: (v: string | null) => {
-    const [h, m] = (v || "08:20").split(":").map(Number);
-    settings.morningFirstStart = { hour: h!, minute: m! };
-  },
-});
-const afternoonStart = computed({
-  get: () =>
-    `${String(settings.afternoonFirstStart.hour).padStart(2, "0")}:${String(
-      settings.afternoonFirstStart.minute,
-    ).padStart(2, "0")}`,
-  set: (v: string | null) => {
-    const [h, m] = (v || "14:00").split(":").map(Number);
-    settings.afternoonFirstStart = { hour: h!, minute: m! };
-  },
-});
-const nightStart = computed({
-  get: () =>
-    `${String(settings.nightFirstStart.hour).padStart(2, "0")}:${String(
-      settings.nightFirstStart.minute,
-    ).padStart(2, "0")}`,
-  set: (v: string | null) => {
-    const [h, m] = (v || "19:00").split(":").map(Number);
-    settings.nightFirstStart = { hour: h!, minute: m! };
-  },
-});
-
 function onSave() {
-  // 改学期日期/总周数后，回到今天所在的周
-  goToTodayWeek();
   saveSettings();
   uiMessage.success("设置已保存");
 }

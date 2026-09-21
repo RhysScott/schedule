@@ -46,6 +46,8 @@ class TimetableIn(BaseModel):
     studentId: str = ""
     studentName: str = ""
     term: str = ""
+    termStartDate: str = ""
+    totalWeeks: int = 16
     userId: Optional[int] = None
     courses: List[CourseIn] = Field(default_factory=list)
 

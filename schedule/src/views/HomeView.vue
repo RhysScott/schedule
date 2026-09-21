@@ -14,7 +14,7 @@
             <ChevronLeft />
           </template>
         </UiButton>
-        <div class="week-number">第{{ currentWeek }}/{{ settings.totalWeeks }}周</div>
+        <div class="week-number">第{{ currentWeek }}/{{ currentTotalWeeks }}周</div>
         <UiButton
           variant="ghost"
           circle
@@ -100,7 +100,7 @@
       :mode="courseModalMode"
       :initial="courseModalInitial"
       :max-period="maxPeriod"
-      :total-weeks="settings.totalWeeks"
+      :total-weeks="currentTotalWeeks"
       @update:show="courseModalShow = $event"
       @save="handleCourseSave"
     />
@@ -130,6 +130,7 @@ import {
   todayDayOfWeek,
   activeEnrollment,
   settings,
+  currentTotalWeeks,
   changeWeek,
   timetables,
   currentOwner,
@@ -180,7 +181,7 @@ function openAdd(payload?: { dayOfWeek: number; periodStart: number }) {
             periodStart: payload.periodStart,
             periodEnd: payload.periodStart,
             weekStart: 1,
-            weekEnd: settings.totalWeeks,
+            weekEnd: currentTotalWeeks.value,
             weekType: "all",
             mode: "offline",
             room: "",

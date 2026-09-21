@@ -40,6 +40,10 @@ export interface StudentEnrollment {
   studentId: string;
   studentName: string;
   term: string;
+  /** 学期配置跟随课表：第1周周一日期 */
+  termStartDate: string; // "YYYY-MM-DD"
+  /** 教学周总数 */
+  totalWeeks: number;
   courses: StudentCourse[];
 }
 
@@ -66,22 +70,7 @@ export interface SpecialDisplaySettings {
 }
 
 export interface TimetableSettings {
-  durationOfEachPeriod: number;    // 每节课时长(分钟)
-  breakDuration: number;           // 普通课间休息时长(分钟)
-  numberOfMorningPeriods: number;  // 上午节数
-  numberOfAfternoonPeriods: number;// 下午节数
-  numberOfNightPeriods: number;    // 晚上节数
-
-  morningFirstStart: { hour: number; minute: number };
-  afternoonFirstStart: { hour: number; minute: number };
-  nightFirstStart: { hour: number; minute: number };
-
   showWeekend: boolean;
-
-  /** 学期开始日期（第1周周一），用于自动计算当前周 */
-  termStartDate: string; // 格式 "YYYY-MM-DD"
-  /** 教学周总数 */
-  totalWeeks: number;
 
   /** 特殊状态（免修/置换/退课）与线上/混合课的显示方式 */
   specialDisplay: SpecialDisplaySettings;

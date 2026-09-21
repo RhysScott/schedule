@@ -21,17 +21,7 @@ const SETTINGS_STORAGE_KEY = "timetable-settings-v1";
 /** 默认配置 */
 function defaultSettings(): TimetableSettings {
   return {
-    durationOfEachPeriod: 40,
-    breakDuration: 10,
-    numberOfMorningPeriods: 5,
-    numberOfAfternoonPeriods: 5,
-    numberOfNightPeriods: 4,
-    morningFirstStart: { hour: 8, minute: 20 },
-    afternoonFirstStart: { hour: 14, minute: 0 },
-    nightFirstStart: { hour: 19, minute: 0 },
     showWeekend: false,
-    termStartDate: "2026-09-14", // 学期开始日期（第1周周一）
-    totalWeeks: 16, // 教学周总数
     // 特殊状态与线上课的显示：true = 置灰 + 状态角标，false = 正常彩色
     specialDisplay: {
       exempt: true,
@@ -71,64 +61,19 @@ export function saveSettings() {
 /** 课表全局配置（响应式：设置页修改后自动生效） */
 export const settings = reactive<TimetableSettings>(loadSettings());
 
-/** 今天所在的学期周（按学期开始日期推算，不随切换变化） */
-export const todayWeek = computed(() => {
-  const start = new Date(`${settings.termStartDate}T00:00:00`);
-  const now = new Date();
-  const diffDays = Math.floor(
-    (now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  const week = Math.floor(diffDays / 7) + 1;
-  return Math.min(Math.max(week, 1), settings.totalWeeks);
-});
-
-/** 当前显示的周次（可切换，1 ~ 教学周总数） */
-export const currentWeek = ref(todayWeek.value);
-
-/** 回到今天所在的周（设置学期日期后调用） */
-export function goToTodayWeek() {
-  currentWeek.value = todayWeek.value;
-}
-
-/** 切换周次：delta = ±1，限制在 1 ~ 教学周总数 */
-export function changeWeek(delta: number) {
-  currentWeek.value = Math.min(
-    Math.max(currentWeek.value + delta, 1),
-    settings.totalWeeks,
-  );
-}
-
 /** 今天星期几（1=周一 ... 7=周日），用于高亮 */
 export const todayDayOfWeek = (() => {
   const day = new Date().getDay();
   return day === 0 ? 7 : day;
 })();
 
-/** 当前教学周（第 currentWeek 周）周一至周日的日期 */
-function getWeekDates(): string[] {
-  const start = new Date(`${settings.termStartDate}T00:00:00`);
-  const monday = new Date(
-    start.getFullYear(),
-    start.getMonth(),
-    start.getDate() + (currentWeek.value - 1) * 7,
-  );
-  const dates = ["", "", "", "", "", "", "", ""];
-  for (let i = 1; i <= 7; i++) {
-    const d = new Date(
-      monday.getFullYear(),
-      monday.getMonth(),
-      monday.getDate() + i - 1,
-    );
-    dates[i] = `${d.getMonth() + 1}/${d.getDate()}`;
-  }
-  return dates;
-}
-
 /** 学生学期课表数据（课程为中心 + 时间段片段 + 选课状态）——后端未启动时的内置回退数据 */
 const FALLBACK_ENROLLMENT: StudentEnrollment = {
   studentId: "ST001",
   studentName: "张三",
   term: "2026秋季学期",
+  termStartDate: "2026-09-14",
+  totalWeeks: 16,
   courses: [
     {
       studentCourseId: "SC001",
@@ -572,6 +517,8 @@ const FALLBACK_TIMETABLES: TimetableEntry[] = [
       studentId: "ST002",
       studentName: "宝宝",
       term: "2026秋季学期",
+      termStartDate: "2026-09-14",
+      totalWeeks: 16,
       courses: [
         {
           studentCourseId: "SCB01",
@@ -713,6 +660,8 @@ function emptyTimetable(owner = "我的"): TimetableEntry {
       studentId: "",
       studentName: "",
       term: "",
+      termStartDate: "",
+      totalWeeks: 16,
       courses: [],
     },
   };
@@ -930,6 +879,8 @@ export async function importTimetable(
       studentId: data.studentId ?? "",
       studentName: data.studentName ?? "",
       term: data.term ?? "",
+      termStartDate: data.termStartDate ?? "",
+      totalWeeks: Number(data.totalWeeks) || 16,
       courses: (data.courses ?? []).map((c: any) => ({
         ...c,
         studentCourseId: c.studentCourseId || genId("SC"),
@@ -954,9 +905,77 @@ export const activeEnrollment = computed<StudentEnrollment>(() => {
   if (t) return t.enrollment;
   const first = timetables.value[0];
   return (
-    first?.enrollment ?? { studentId: "", studentName: "", term: "", courses: [] }
+    first?.enrollment ?? {
+      studentId: "",
+      studentName: "",
+      term: "",
+      termStartDate: "",
+      totalWeeks: 16,
+      courses: [],
+    }
   ) as StudentEnrollment;
 });
+
+/* ============ 学期配置跟随当前课表 ============ */
+
+/** 当前课表的学期开始日期（第1周周一），无课表时用默认值 */
+export const currentTermStartDate = computed(() => {
+  const t = timetables.value[currentTimetableIndex.value];
+  return t?.enrollment.termStartDate || "2026-09-14";
+});
+
+/** 当前课表的教学周总数 */
+export const currentTotalWeeks = computed(() => {
+  const t = timetables.value[currentTimetableIndex.value];
+  return t?.enrollment.totalWeeks || 16;
+});
+
+/** 今天所在的学期周（按当前课表学期推算，不随切换变化） */
+export const todayWeek = computed(() => {
+  const start = new Date(`${currentTermStartDate.value}T00:00:00`);
+  const now = new Date();
+  const diffDays = Math.floor(
+    (now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  const week = Math.floor(diffDays / 7) + 1;
+  return Math.min(Math.max(week, 1), currentTotalWeeks.value);
+});
+
+/** 当前显示的周次（可切换，1 ~ 教学周总数） */
+export const currentWeek = ref(todayWeek.value);
+
+/** 回到今天所在的周（切换课表/学期变化后调用） */
+export function goToTodayWeek() {
+  currentWeek.value = todayWeek.value;
+}
+
+/** 切换周次：delta = ±1，限制在 1 ~ 教学周总数 */
+export function changeWeek(delta: number) {
+  currentWeek.value = Math.min(
+    Math.max(currentWeek.value + delta, 1),
+    currentTotalWeeks.value,
+  );
+}
+
+/** 当前教学周（第 currentWeek 周）周一至周日的日期 */
+function getWeekDates(): string[] {
+  const start = new Date(`${currentTermStartDate.value}T00:00:00`);
+  const monday = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate() + (currentWeek.value - 1) * 7,
+  );
+  const dates = ["", "", "", "", "", "", "", ""];
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(
+      monday.getFullYear(),
+      monday.getMonth(),
+      monday.getDate() + i - 1,
+    );
+    dates[i] = `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+  return dates;
+}
 
 /** 当前课表标签 */
 export const currentOwner = computed(() => {
@@ -1015,8 +1034,11 @@ export function useTimetable() {
     return days.filter((d) => d.weekText !== "周六" && d.weekText !== "周日");
   });
 
-  /** 各节次开始时间，按上午/下午/晚上分段生成 */
-  const periodList = computed<[number, number][]>(() => {
+  /* ---------- 固定节次表（成都东软学院）：每节 40 分钟、课间 10 分钟，
+     上午 5 节 08:20 起、下午 5 节 14:00 起、晚上 4 节 19:00 起，共 14 节 ---------- */
+  const PERIOD_DURATION = 40;
+  const BREAK_DURATION = 10;
+  const FIXED_PERIODS: [number, number][] = (() => {
     const list: [number, number][] = [];
     const pushRange = (
       start: { hour: number; minute: number },
@@ -1026,22 +1048,22 @@ export function useTimetable() {
       let m = start.minute;
       for (let i = 0; i < count; i++) {
         list.push([h, m]);
-        const total =
-          h * 60 + m + settings.durationOfEachPeriod + settings.breakDuration;
+        const total = h * 60 + m + PERIOD_DURATION + BREAK_DURATION;
         h = Math.floor(total / 60);
         m = total % 60;
       }
     };
-    pushRange(settings.morningFirstStart, settings.numberOfMorningPeriods);
-    pushRange(settings.afternoonFirstStart, settings.numberOfAfternoonPeriods);
-    pushRange(settings.nightFirstStart, settings.numberOfNightPeriods);
+    pushRange({ hour: 8, minute: 20 }, 5);
+    pushRange({ hour: 14, minute: 0 }, 5);
+    pushRange({ hour: 19, minute: 0 }, 4);
     return list;
-  });
+  })();
 
-  /** 根据开始时分计算下课时间 */
+  const periodList = computed<[number, number][]>(() => FIXED_PERIODS);
+
+  /** 根据开始时分计算下课时间（每节固定 40 分钟） */
   const getEndTime = (startHour: number, startMinute: number) => {
-    const totalMin =
-      startHour * 60 + startMinute + settings.durationOfEachPeriod;
+    const totalMin = startHour * 60 + startMinute + PERIOD_DURATION;
     const endHour = Math.floor(totalMin / 60);
     const endMin = totalMin % 60;
     return `${endHour}:${String(endMin).padStart(2, "0")}`;
@@ -1054,8 +1076,8 @@ export function useTimetable() {
   const rowList = computed<TimetableRow[]>(() => {
     const pl = periodList.value;
     const rows: TimetableRow[] = [];
-    const m = settings.numberOfMorningPeriods;
-    const a = settings.numberOfAfternoonPeriods;
+    const m = 5;
+    const a = 5;
 
     // 上午
     pl.slice(0, m).forEach((p, i) =>

@@ -156,6 +156,8 @@ def _timetable_to_dict(t: Timetable, db: Session) -> Dict[str, Any]:
             "studentId": t.student_id,
             "studentName": t.student_name,
             "term": t.term,
+            "termStartDate": t.term_start_date or "",
+            "totalWeeks": t.total_weeks or 16,
             "courses": [_course_to_dict(c) for c in courses],
         },
     }
@@ -257,6 +259,8 @@ def _encode_code(timetable: Timetable) -> str:
         "studentId": timetable.student_id,
         "studentName": timetable.student_name,
         "term": timetable.term,
+        "termStartDate": timetable.term_start_date or "",
+        "totalWeeks": timetable.total_weeks or 16,
         "courses": [_course_to_dict(c) for c in timetable.courses],
     }
     raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -351,6 +355,8 @@ def create_timetable(payload: TimetableIn) -> List[Dict[str, Any]]:
             student_id=payload.studentId,
             student_name=payload.studentName,
             term=payload.term,
+            term_start_date=payload.termStartDate,
+            total_weeks=payload.totalWeeks,
             user_id=payload.userId,
         )
         for c in payload.courses:
@@ -441,6 +447,8 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
                 student_id=data.get("studentId", ""),
                 student_name=data.get("studentName", ""),
                 term=data.get("term", ""),
+                term_start_date=data.get("termStartDate", ""),
+                total_weeks=int(data.get("totalWeeks") or 16),
                 share_code=str(uuid.uuid4()),
             )
             from .schemas import CourseIn
@@ -454,6 +462,8 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
                 student_id=src.student_id,
                 student_name=src.student_name,
                 term=src.term,
+                term_start_date=src.term_start_date,
+                total_weeks=src.total_weeks,
                 share_code=str(uuid.uuid4()),
                 source_id=src.id,
                 sync_enabled=True,
@@ -465,6 +475,8 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
                 student_id=src.student_id,
                 student_name=src.student_name,
                 term=src.term,
+                term_start_date=src.term_start_date,
+                total_weeks=src.total_weeks,
                 share_code=str(uuid.uuid4()),
             )
             for c in src.courses:
