@@ -458,6 +458,7 @@ const isConnectingRow = (sIndex: number) => {
       align-items: center;
       justify-content: center;
       gap: 0.02rem;
+      padding: 0.02rem 0.03rem;
       border-right: 0.01rem solid #eee;
       border-bottom: 0.01rem solid #eee; /* 节次列边框始终显示，不受连堂影响 */
 
@@ -483,6 +484,9 @@ const isConnectingRow = (sIndex: number) => {
   .home-container {
     width: 100vw;
     padding: 0.05rem 0.12rem;
+  }
+  .body-cell.time-cell {
+    padding: 0.015rem 0.015rem;
   }
   .fab {
     right: 0.15rem;
