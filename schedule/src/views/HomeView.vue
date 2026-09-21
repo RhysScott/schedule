@@ -1,5 +1,6 @@
 <template>
   <div class="home-container">
+    <template v-if="isLoggedIn">
     <div class="top-bar">
       <div class="term">{{ activeEnrollment.term }}</div>
       <div class="week-switcher">
@@ -105,13 +106,20 @@
       @update:show="courseModalShow = $event"
       @save="handleCourseSave"
     />
+    </template>
+
+    <!-- 未登录：不展示任何课表数据 -->
+    <div v-else class="login-empty">
+      <UiEmpty text="登录后查看课表" />
+      <UiButton variant="primary" @click="goMy">去登录</UiButton>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
-import { UiButton, uiMessage } from "@/components/ui";
+import { UiButton, UiEmpty, uiMessage } from "@/components/ui";
 import {
   ChevronLeft,
   ChevronRight,
@@ -124,6 +132,7 @@ import CourseFormModal from "@/components/CourseFormModal.vue";
 import type { CourseFormPayload } from "@/components/CourseFormModal.vue";
 import { addCourse, updateCourse } from "@/api";
 import type { StudentCourse } from "@/types/course";
+import { isLoggedIn } from "@/composables/useAuth";
 import {
   useTimetable,
   activeTimetable,
@@ -149,6 +158,11 @@ const isTodayWeek = computed(() => currentWeek.value === todayWeek.value);
 // 跳转到全部课表页面选择
 function goTimetables() {
   router.push("/timetables");
+}
+
+// 未登录去登录页
+function goMy() {
+  router.push("/my");
 }
 
 /* ============ 添加 / 编辑课程弹窗 ============ */
@@ -352,6 +366,14 @@ const isConnectingRow = (sIndex: number) => {
     width: 0.24rem;
     height: 0.24rem;
   }
+}
+.login-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
 }
 .top-bar {
   display: flex;

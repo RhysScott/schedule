@@ -8,8 +8,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import TabBar from './components/TabBar.vue';
+import { isLoggedIn } from './composables/useAuth';
 import { loadTimetables } from './composables/useTimetable';
 
 const designWidth = 375; // pixel
@@ -25,9 +26,12 @@ function setRem() {
 setRem();
 addEventListener('resize', setRem);
 
-// 启动时从 FastAPI 后端加载课表（失败回退内置数据）
+// 登录后才从后端加载课表；登录/退出时同步
 onMounted(() => {
-  loadTimetables();
+  if (isLoggedIn.value) loadTimetables();
+});
+watch(isLoggedIn, (v) => {
+  if (v) loadTimetables();
 });
 </script>
 

@@ -21,6 +21,7 @@
       </UiButton>
     </div>
 
+    <template v-if="isLoggedIn">
     <div class="tt-list">
       <div
         v-for="(t, i) in timetables"
@@ -74,6 +75,13 @@
     </div>
 
     <div class="tt-tip">点击课表卡片切换查看 · 分享按钮可导出课表码</div>
+    </template>
+
+    <!-- 未登录：不展示课表 -->
+    <div v-else class="tt-login-empty">
+      <UiEmpty text="登录后查看课表" />
+      <UiButton variant="primary" @click="goMy">去登录</UiButton>
+    </div>
 
     <!-- 导入课表码弹窗 -->
     <UiModal :show="importShow" title="导入课表" @update:show="(v: boolean) => (importShow = v)">
@@ -127,6 +135,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   UiButton,
+  UiEmpty,
   UiInput,
   UiModal,
   UiRadioGroup,
@@ -139,6 +148,7 @@ import {
   currentTimetableIndex,
 } from "@/composables/useTimetable";
 import { deleteTimetable, fetchShareCode, importTimetable } from "@/api";
+import { isLoggedIn } from "@/composables/useAuth";
 
 const router = useRouter();
 
@@ -156,6 +166,10 @@ function select(i: number) {
 
 function goBack() {
   router.push("/");
+}
+
+function goMy() {
+  router.push("/my");
 }
 
 function openImport() {
@@ -333,6 +347,14 @@ async function doDelete(i: number) {
   }
 }
 
+.tt-login-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  height: 60vh;
+}
 .tt-tip {
   margin-top: 0.12rem;
   text-align: center;
