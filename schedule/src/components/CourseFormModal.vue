@@ -54,7 +54,11 @@
         </UiFormItem>
         <div class="form-row">
           <UiFormItem label="开始节次" class="half">
-            <UiSelect v-model="seg.periodStart" :options="periodOptions" />
+            <UiSelect
+              v-model="seg.periodStart"
+              :options="periodOptions"
+              :disabled="isLocked(idx)"
+            />
           </UiFormItem>
           <UiFormItem label="结束节次" class="half">
             <UiSelect v-model="seg.periodEnd" :options="periodOptions" />
@@ -235,7 +239,7 @@ const form = reactive<{
   segments: [],
 });
 
-const lockedIndex = ref<number | null>(null);
+const lockedIndexes = ref<number[]>([]);
 
 /** 打开时预填 */
 watch(
@@ -251,12 +255,16 @@ watch(
       init?.segments && init.segments.length > 0
         ? init.segments.map((s) => ({ ...s }))
         : [defaultSegment()];
-    lockedIndex.value = init?.lockedSegmentIndex ?? null;
+    lockedIndexes.value =
+      props.mode === "edit" && init?.segments && init.segments.length > 0
+        ? init.segments.map((_, i) => i)
+        : [];
   },
 );
 
+/** 编辑模式：已有时间段的位置（星期几/起始节次）由点击确定，全部锁定；新增段不锁 */
 function isLocked(idx: number) {
-  return lockedIndex.value === idx;
+  return lockedIndexes.value.includes(idx);
 }
 
 function addSegment() {
@@ -272,12 +280,9 @@ function addSegment() {
 
 function removeSegment(idx: number) {
   form.segments.splice(idx, 1);
-  if (lockedIndex.value !== null && lockedIndex.value >= form.segments.length) {
-    lockedIndex.value = null;
-  }
-  if (lockedIndex.value !== null && lockedIndex.value > idx) {
-    lockedIndex.value -= 1;
-  }
+  lockedIndexes.value = lockedIndexes.value
+    .filter((x) => x !== idx)
+    .map((x) => (x > idx ? x - 1 : x));
 }
 
 function handleSubmit() {
