@@ -705,8 +705,25 @@ const FALLBACK_TIMETABLES: TimetableEntry[] = [
 
 /* ============ 双数据源：未登录本地 / 登录云端 ============ */
 
-/** 本地课表持久化 key（未登录模式，数据只存在本地） */
-const LOCAL_STORAGE_KEY = "timetables-local-v1";
+/** 空课表模板：不含任何个人信息，新建/删空后使用 */
+function emptyTimetable(owner = "我的"): TimetableEntry {
+  return {
+    owner,
+    enrollment: {
+      studentId: "",
+      studentName: "",
+      term: "",
+      courses: [],
+    },
+  };
+}
+
+/**
+ * 本地课表持久化 key（未登录模式，数据只存在本地）
+ * v2：作废旧版首次使用自动写入的内置张三/宝宝示例数据，
+ * 未登录时不再展示任何他人/示例个人信息
+ */
+const LOCAL_STORAGE_KEY = "timetables-local-v2";
 
 function loadLocalTimetables(): TimetableEntry[] {
   try {
@@ -718,8 +735,8 @@ function loadLocalTimetables(): TimetableEntry[] {
   } catch {
     /* 忽略损坏数据 */
   }
-  // 首次使用：以内置示例课表为本地默认
-  return JSON.parse(JSON.stringify(FALLBACK_TIMETABLES)) as TimetableEntry[];
+  // 首次使用：空列表（未登录不展示任何他人/示例个人信息）
+  return [];
 }
 
 function saveLocalTimetables() {
@@ -728,10 +745,8 @@ function saveLocalTimetables() {
 
 /** 本地数据 */
 const localTimetables = ref<TimetableEntry[]>(loadLocalTimetables());
-/** 云端数据（登录后；初始用内置数据占位，加载完成后覆盖，避免登录瞬间白屏） */
-const cloudTimetables = ref<TimetableEntry[]>(
-  JSON.parse(JSON.stringify(FALLBACK_TIMETABLES)) as TimetableEntry[],
-);
+/** 云端数据（登录后；初始为空，加载完成后填充） */
+const cloudTimetables = ref<TimetableEntry[]>([]);
 
 /** 课表列表：登录后走云端，未登录走本地（本地不联网、不上传） */
 export const timetables = computed<TimetableEntry[]>({
@@ -880,7 +895,7 @@ export async function deleteTimetable(timetableIndex: number): Promise<Timetable
   const list = cloneList();
   list.splice(timetableIndex, 1);
   if (!list.length) {
-    list.push(JSON.parse(JSON.stringify(FALLBACK_TIMETABLES[0]!)) as TimetableEntry);
+    list.push(emptyTimetable());
   }
   timetables.value = list;
   return list;
