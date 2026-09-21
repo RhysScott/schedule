@@ -64,8 +64,7 @@
               {{ row.sIndex + 1 }}
             </div>
             <div class="time">
-              {{ row.period[0] }}:{{ String(row.period[1]).padStart(2, "0") }}<br />
-              {{ getEndTime(row.period[0], row.period[1]) }}
+              {{ row.period[0] }}:{{ String(row.period[1]).padStart(2, "0") }}-{{ getEndTime(row.period[0], row.period[1]) }}
             </div>
           </div>
           <TimetableCell
@@ -459,9 +458,10 @@ const isConnectingRow = (sIndex: number) => {
 
       .time {
         font-size: 0.07rem;
-        line-height: 1.4;
+        line-height: 1.2;
         color: #999;
         text-align: center;
+        white-space: nowrap;
       }
     }
   }
