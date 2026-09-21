@@ -1,0 +1,10 @@
+@import './base.css';
+
+#app {
+  max-width: 100%;
+}
+/* 悬浮添加按钮图标：尺寸走 rem 适配（naive 图标容器不响应 scoped 嵌套，故放全局） */
+.fab svg {
+  width: 0.24rem !important;
+  height: 0.24rem !important;
+}

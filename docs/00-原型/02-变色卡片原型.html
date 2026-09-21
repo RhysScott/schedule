@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hash HSL Color Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .card {
+        height: 200px;
+        width: 200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        border-radius: 36px;
+        margin: 20px 20px;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+
+
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">R.</div>
+    <script>
+      const card = document.getElementsByClassName("card")[0];
+      const card_content = card.innerText;
+      const cs = getComputedStyle(card);
+      const cardLimitedSize = Math.min(parseFloat(cs.width), parseFloat(cs.height));
+      const textLength = card_content.length;
+      const fontSize = cardLimitedSize / textLength;
+      let hash = 0;
+      for (let i = 0; i < card_content.length; i++) {
+        const code = card_content.charCodeAt(i);
+        hash = code + ((hash << 5) - hash);
+      }
+      const hue = Math.abs(hash) % 360;
+      console.log("hash=", hash, "hue=", hue);
+      card.style.fontSize = `${fontSize}px`
+      card.style.backgroundColor = textLength?`hsl(${hue}, 35%, 75%)`:"#055ffe" ;
+    </script>
+  </body>
+</html>
