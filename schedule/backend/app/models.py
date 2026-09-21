@@ -14,7 +14,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(64), unique=True, index=True, nullable=False)
     password_hash = Column(String(256), nullable=False)
-    created_at = Column(String(32), default="")
+    created_at = Column(String(64), default="")
 
 
 class Timetable(Base):
@@ -92,7 +92,7 @@ class Organization(Base):
     org_code = Column(String(16), unique=True, index=True, nullable=False)
     parent_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     admin_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(String(32), default="")
+    created_at = Column(String(64), default="")
 
 
 class OrganizationMember(Base):
@@ -104,4 +104,4 @@ class OrganizationMember(Base):
     org_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     status = Column(String(16), default="pending")
-    joined_at = Column(String(32), default="")
+    joined_at = Column(String(64), default="")

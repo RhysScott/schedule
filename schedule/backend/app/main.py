@@ -37,38 +37,17 @@ from .schemas import (
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_FILE = os.path.join(BASE_DIR, "timetable.db")
 LEGACY_DATA_FILE = os.path.join(BASE_DIR, "data.json")
 
-engine = create_engine(
-    f"sqlite:///{DB_FILE}",
-    connect_args={"check_same_thread": False},
+# MySQL（root/kissme，库名 timetable）
+DB_URL = os.environ.get(
+    "DATABASE_URL",
+    "mysql+pymysql://root:kissme@127.0.0.1:3306/timetable?charset=utf8mb4",
 )
+
+engine = create_engine(DB_URL, pool_pre_ping=True, pool_recycle=3600)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 Base.metadata.create_all(engine)
-
-
-def _ensure_column(table: str, column: str, ddl: str) -> None:
-    """SQLite 表结构演进：已有表缺列时补列（create_all 不会改旧表）"""
-    with SessionLocal() as db:
-        cols = [
-            row[1]
-            for row in db.execute(text(f"PRAGMA table_info({table})")).fetchall()
-        ]
-        if column not in cols:
-            db.execute(text(ddl))
-            db.commit()
-
-
-_ensure_column(
-    "timetables", "share_code", "ALTER TABLE timetables ADD COLUMN share_code VARCHAR(36)"
-)
-_ensure_column(
-    "timetables", "source_id", "ALTER TABLE timetables ADD COLUMN source_id INTEGER"
-)
-_ensure_column(
-    "timetables", "sync_enabled", "ALTER TABLE timetables ADD COLUMN sync_enabled BOOLEAN DEFAULT 0"
-)
 
 
 def _backfill_share_codes() -> None:

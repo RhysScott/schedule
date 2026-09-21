@@ -6,6 +6,10 @@
   font-weight: normal;
 }
 
+html,
 body {
   min-height: 100vh;
+  max-width: 100%;
+  /* 只允许垂直滚动：内容超宽时裁剪，不允许横向滚动条兜底 */
+  overflow-x: hidden;
 }

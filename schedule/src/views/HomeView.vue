@@ -399,6 +399,9 @@ const isConnectingRow = (sIndex: number) => {
       background: #eafaf3;
       border-radius: 0.3rem;
       white-space: nowrap;
+      max-width: 1.3rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
 
       .sync-badge {
         margin-left: 0.03rem;
