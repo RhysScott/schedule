@@ -166,8 +166,11 @@ const cardStyle = computed(() =>
   font-size: 0.1rem;
   font-weight: bold;
   overflow: hidden;
-  /* 给右上角状态角标让位 */
-  padding-right: 0.18rem;
+  /* 默认占满整卡宽度；仅当右上角有状态角标时才让位（避免 tag 挤压标题空间） */
+  padding-right: 0;
+}
+.course-card:has(.status-badge) .course-name {
+  padding-right: 0.15rem;
 }
 /* 教室/老师：次信息，小号弱化；空间足够时允许换行，不省略 */
 .course-meta {
