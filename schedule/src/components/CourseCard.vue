@@ -1,22 +1,52 @@
 <template>
-  <div class="course-card" :class="{ muted: isSpecial }" :style="cardStyle" @click="emit('click')">
+  <div ref="el" class="course-card" :class="{ muted: isSpecial }" :style="cardStyle" @click="emit('click')">
     <span v-if="isSpecial" class="status-badge">{{ statusText }}</span>
     <div class="course-name">
       {{ course.name }}
     </div>
-    <div v-if="roomText" class="course-meta">@{{ roomText }}</div>
-    <div v-if="course.teacher" class="course-meta">{{ course.teacher }}</div>
+    <div v-if="roomText" class="course-meta" v-show="hiddenCount <= 1">@{{ roomText }}</div>
+    <div v-if="course.teacher" class="course-meta" v-show="hiddenCount === 0">{{ course.teacher }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import type { RenderCourse } from "@/types/course";
 import { settings } from "@/composables/useTimetable";
 
 const props = defineProps<{
   course: RenderCourse;
 }>();
+
+/**
+ * 卡片高度不够时按优先级降级隐藏次要行，避免文字被裁掉半行：
+ * 3 行（课程名+教室+老师）→ 2 行（课程名+教室）→ 1 行（仅课程名）
+ */
+const el = ref<HTMLDivElement | null>(null);
+const hiddenCount = ref(0);
+let ro: ResizeObserver | null = null;
+
+const NAME_LINE = 0.13; // 0.1rem * 1.3 line-height
+const META_LINE = 0.0975; // 0.075rem * 1.3
+const PAD_V = 0.07; // 0.035rem * 2
+const GAP = 0.01;
+
+function measure() {
+  const c = el.value;
+  if (!c) return;
+  const h = c.clientHeight / 100; // rem 基准在 App.vue 中按 100px 设定
+  let lines = 1;
+  if (h >= PAD_V + NAME_LINE + GAP + META_LINE + GAP + META_LINE) lines = 3;
+  else if (h >= PAD_V + NAME_LINE + GAP + META_LINE) lines = 2;
+  hiddenCount.value = lines >= 3 ? 0 : lines === 2 ? 1 : 2;
+}
+
+onMounted(() => {
+  measure();
+  ro = new ResizeObserver(measure);
+  if (el.value) ro.observe(el.value);
+});
+onBeforeUnmount(() => ro?.disconnect());
 
 const emit = defineEmits<{
   click: [];
@@ -144,8 +174,8 @@ const cardStyle = computed(() =>
   flex-direction: column;
   /* 顶部对齐：内容超高一侧（底部）溢出，避免上下各裁一半 */
   justify-content: flex-start;
-  gap: 0.015rem;
-  padding: 0.05rem 0.06rem;
+  gap: 0.01rem;
+  padding: 0.035rem 0.055rem;
   border-radius: 0.06rem;
   overflow: hidden;
   line-height: 1.3;

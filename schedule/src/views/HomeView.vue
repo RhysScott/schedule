@@ -286,10 +286,15 @@ function onAddClick() {
 }
 
 // 存在单节课程时增高行，保证卡片文字完整不截断
-const hasSinglePeriodCourse = weekSchedule.value.some((day) =>
-  Object.values(day.courseMap).some((c) => c.startPeriod === c.endPeriod),
+// 课表异步加载完成后需要重算，因此用 computed
+const hasSinglePeriodCourse = computed(() =>
+  weekSchedule.value.some((day) =>
+    Object.values(day.courseMap).some((c) => c.startPeriod === c.endPeriod),
+  ),
 );
-const mobileRowHeight = hasSinglePeriodCourse ? "0.66rem" : "0.4rem";
+const mobileRowHeight = computed(() =>
+  hasSinglePeriodCourse.value ? "0.55rem" : "0.4rem",
+);
 
 /**
  * PC 端（≥1024px）：行高按视口高度弹性均分，
@@ -306,14 +311,14 @@ window.addEventListener("resize", updateViewport);
 onBeforeUnmount(() => window.removeEventListener("resize", updateViewport));
 
 const rowHeight = computed(() => {
-  if (!isDesktop.value) return mobileRowHeight;
+  if (!isDesktop.value) return mobileRowHeight.value;
   const rows = rowList.value.filter((r) => r.type !== "break").length;
   const breakCount = rowList.value.length - rows;
   if (!rows) return "0.4rem";
   // 固定开销：顶栏 + 表头 + 午/晚休行 + 容器留白 + tabbar
   const fixed = 1.5 + breakCount * 0.25 + 0.2;
   const remBase = parseFloat(getComputedStyle(document.documentElement).fontSize) || 170;
-  const rem = Math.max(0.28, (vh.value / remBase - fixed) / rows);
+  const rem = Math.max(0.38, (vh.value / remBase - fixed) / rows);
   // 必须带 rem 单位：无单位的 height 在 CSS 中无效，会导致行高塌缩、跨节次卡片错位
   return rem.toFixed(3) + "rem";
 });
