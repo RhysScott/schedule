@@ -314,7 +314,8 @@ const rowHeight = computed(() => {
   const fixed = 1.5 + breakCount * 0.25 + 0.2;
   const remBase = parseFloat(getComputedStyle(document.documentElement).fontSize) || 170;
   const rem = Math.max(0.28, (vh.value / remBase - fixed) / rows);
-  return rem.toFixed(3);
+  // 必须带 rem 单位：无单位的 height 在 CSS 中无效，会导致行高塌缩、跨节次卡片错位
+  return rem.toFixed(3) + "rem";
 });
 
 // 连堂：该行处于某门课程的中间（非最后一行）时，隐藏底部边框，使课程视觉连续
