@@ -38,27 +38,24 @@
       </UiButton>
     </div>
 
-    <!-- 学生信息：仅登录后显示 -->
-    <template v-if="isLoggedIn">
-      <div class="avatar">{{ initial }}</div>
-      <div class="name">{{ activeEnrollment.studentName || "未登录" }}</div>
-      <div class="sub">{{ activeEnrollment.term }}</div>
+    <div class="avatar">{{ initial }}</div>
+    <div class="name">{{ activeEnrollment.studentName || "未登录" }}</div>
+    <div class="sub">{{ activeEnrollment.term }}</div>
 
-      <div class="info-card">
-        <div class="info-row">
-          <span class="label">学号</span>
-          <span class="value">{{ activeEnrollment.studentId || "-" }}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">学期</span>
-          <span class="value">{{ activeEnrollment.term || "-" }}</span>
-        </div>
-        <div class="info-row">
-          <span class="label">已选课程</span>
-          <span class="value">{{ activeEnrollment.courses.length }} 门</span>
-        </div>
+    <div class="info-card">
+      <div class="info-row">
+        <span class="label">学号</span>
+        <span class="value">{{ activeEnrollment.studentId || "-" }}</span>
       </div>
-    </template>
+      <div class="info-row">
+        <span class="label">学期</span>
+        <span class="value">{{ activeEnrollment.term || "-" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">已选课程</span>
+        <span class="value">{{ activeEnrollment.courses.length }} 门</span>
+      </div>
+    </div>
 
     <!-- 组织管理入口 -->
     <div class="org-entry" @click="goOrgs">

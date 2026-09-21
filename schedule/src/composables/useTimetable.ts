@@ -1,8 +1,17 @@
 import { computed, reactive, ref } from "vue";
-import { fetchTimetables } from "@/api";
+import {
+  addCourse as apiAddCourse,
+  deleteTimetable as apiDeleteTimetable,
+  fetchShareCode as apiFetchShareCode,
+  fetchTimetables,
+  importTimetable as apiImportTimetable,
+  updateCourse as apiUpdateCourse,
+} from "@/api";
+import { isLoggedIn } from "@/composables/useAuth";
 import type {
   CourseSegment,
   RenderCourse,
+  StudentCourse,
   StudentEnrollment,
   TimetableSettings,
 } from "@/types/course";
@@ -694,36 +703,251 @@ const FALLBACK_TIMETABLES: TimetableEntry[] = [
   },
 ];
 
-/** 课表列表（后端为权威数据源；后端未启动时回退到内置数据） */
-export const timetables = ref<TimetableEntry[]>(FALLBACK_TIMETABLES);
+/* ============ 双数据源：未登录本地 / 登录云端 ============ */
 
-/** 从后端加载全部课表 */
+/** 本地课表持久化 key（未登录模式，数据只存在本地） */
+const LOCAL_STORAGE_KEY = "timetables-local-v1";
+
+function loadLocalTimetables(): TimetableEntry[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data) && data.length) return data;
+    }
+  } catch {
+    /* 忽略损坏数据 */
+  }
+  // 首次使用：以内置示例课表为本地默认
+  return JSON.parse(JSON.stringify(FALLBACK_TIMETABLES)) as TimetableEntry[];
+}
+
+function saveLocalTimetables() {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localTimetables.value));
+}
+
+/** 本地数据 */
+const localTimetables = ref<TimetableEntry[]>(loadLocalTimetables());
+/** 云端数据（登录后；初始用内置数据占位，加载完成后覆盖，避免登录瞬间白屏） */
+const cloudTimetables = ref<TimetableEntry[]>(
+  JSON.parse(JSON.stringify(FALLBACK_TIMETABLES)) as TimetableEntry[],
+);
+
+/** 课表列表：登录后走云端，未登录走本地（本地不联网、不上传） */
+export const timetables = computed<TimetableEntry[]>({
+  get: () => (isLoggedIn.value ? cloudTimetables.value : localTimetables.value),
+  set: (v) => {
+    if (isLoggedIn.value) cloudTimetables.value = v;
+    else {
+      localTimetables.value = v;
+      saveLocalTimetables();
+    }
+  },
+});
+
+/** 从后端加载全部课表（仅登录后；未登录保持本地数据） */
 export async function loadTimetables() {
+  if (!isLoggedIn.value) return;
   try {
     const data = await fetchTimetables();
     if (data.length) {
-      timetables.value = data;
+      cloudTimetables.value = data;
       if (currentTimetableIndex.value >= data.length) {
         currentTimetableIndex.value = 0;
       }
     }
   } catch (e) {
-    console.warn("后端未启动，使用内置课表数据：", e);
+    console.warn("云端课表加载失败：", e);
   }
+}
+
+/** 登录态切换后校正下标 */
+export function syncTimetableSource() {
+  if (currentTimetableIndex.value >= timetables.value.length) {
+    currentTimetableIndex.value = Math.max(0, timetables.value.length - 1);
+  }
+}
+
+/** 本地 id 生成（不与云端冲突） */
+function genId(prefix: string): string {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `${prefix}${Date.now().toString(36).toUpperCase()}${rand}`;
+}
+
+/** 深拷贝当前列表（本地修改基于副本，改完整体写回） */
+function cloneList(): TimetableEntry[] {
+  return JSON.parse(JSON.stringify(timetables.value)) as TimetableEntry[];
+}
+
+/* ---------- 本地模式：zlib 自包含课表码（base64url + deflate + json） ---------- */
+
+async function compressText(text: string): Promise<string> {
+  const cs = new CompressionStream("deflate");
+  const stream = new Blob([text], { type: "text/plain" })
+    .stream()
+    .pipeThrough(cs);
+  const buf = await new Response(stream).arrayBuffer();
+  let bin = "";
+  for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function decompressCode(code: string): Promise<any> {
+  const b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64);
+  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  const ds = new DecompressionStream("deflate");
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  const text = await new Response(stream).text();
+  const data = JSON.parse(text);
+  if (!data || !Array.isArray(data.courses)) throw new Error("课表码无效");
+  return data;
+}
+
+/* ---------- 增删改/导入导出封装（自动路由本地/云端） ---------- */
+
+/** 添加课程 */
+export async function addCourse(
+  timetableIndex: number,
+  course: Partial<StudentCourse>,
+): Promise<TimetableEntry[]> {
+  if (isLoggedIn.value) return apiAddCourse(timetableIndex, course);
+  const list = cloneList();
+  const t = list[timetableIndex]!;
+  t.enrollment.courses.push({
+    studentCourseId: genId("SC"),
+    courseId: genId("C"),
+    courseName: course.courseName ?? "",
+    credit: course.credit ?? 1,
+    teacher: course.teacher ?? "",
+    campus: course.campus ?? "主校区",
+    enrollStatus: course.enrollStatus ?? "normal",
+    sourceCourseId: null,
+    approveRemark: "",
+    segments: (course.segments ?? []).map((s) => ({
+      segmentId: s.segmentId || genId("S"),
+      weekStart: s.weekStart,
+      weekEnd: s.weekEnd,
+      weekType: s.weekType,
+      dayOfWeek: s.dayOfWeek,
+      periodStart: s.periodStart,
+      periodEnd: s.periodEnd,
+      room: s.room ?? "",
+      mode: s.mode ?? "offline",
+      remark: s.remark ?? "",
+    })),
+  });
+  timetables.value = list;
+  return list;
+}
+
+/** 修改课程（按 studentCourseId） */
+export async function updateCourse(
+  timetableIndex: number,
+  studentCourseId: string,
+  course: Partial<StudentCourse>,
+): Promise<TimetableEntry[]> {
+  if (isLoggedIn.value) return apiUpdateCourse(timetableIndex, studentCourseId, course);
+  const list = cloneList();
+  const t = list[timetableIndex]!;
+  const target = t.enrollment.courses.find((c) => c.studentCourseId === studentCourseId);
+  if (!target) throw new Error("课程不存在");
+  if (course.courseName !== undefined) target.courseName = course.courseName;
+  if (course.credit !== undefined) target.credit = course.credit;
+  if (course.teacher !== undefined) target.teacher = course.teacher;
+  if (course.enrollStatus !== undefined) target.enrollStatus = course.enrollStatus;
+  if (course.segments) {
+    target.segments = course.segments.map((s) => ({
+      segmentId: s.segmentId || genId("S"),
+      weekStart: s.weekStart,
+      weekEnd: s.weekEnd,
+      weekType: s.weekType,
+      dayOfWeek: s.dayOfWeek,
+      periodStart: s.periodStart,
+      periodEnd: s.periodEnd,
+      room: s.room ?? "",
+      mode: s.mode ?? "offline",
+      remark: s.remark ?? "",
+    }));
+  }
+  timetables.value = list;
+  return list;
+}
+
+/** 删除课表 */
+export async function deleteTimetable(timetableIndex: number): Promise<TimetableEntry[]> {
+  if (isLoggedIn.value) return apiDeleteTimetable(timetableIndex);
+  const list = cloneList();
+  list.splice(timetableIndex, 1);
+  if (!list.length) {
+    list.push(JSON.parse(JSON.stringify(FALLBACK_TIMETABLES[0]!)) as TimetableEntry);
+  }
+  timetables.value = list;
+  return list;
+}
+
+/** 导出课表码：登录后导出云端 UUID 码；本地模式导出 zlib 自包含码 */
+export async function fetchShareCode(timetableIndex: number): Promise<string> {
+  if (isLoggedIn.value) return apiFetchShareCode(timetableIndex);
+  const t = timetables.value[timetableIndex]!;
+  const payload = {
+    owner: t.owner,
+    studentId: t.enrollment.studentId,
+    studentName: t.enrollment.studentName,
+    term: t.enrollment.term,
+    courses: t.enrollment.courses,
+  };
+  return compressText(JSON.stringify(payload));
+}
+
+/** 导入课表：登录后走云端（copy 拷贝 / sync 同步）；本地模式仅支持自包含码拷贝 */
+export async function importTimetable(
+  code: string,
+  mode: "copy" | "sync" = "copy",
+): Promise<{ timetables: TimetableEntry[]; index: number }> {
+  if (isLoggedIn.value) return apiImportTimetable(code, mode);
+  if (mode === "sync") throw new Error("同步导入需要登录后使用");
+  const data = await decompressCode(code);
+  const list = cloneList();
+  list.push({
+    owner: data.owner || "导入课表",
+    enrollment: {
+      studentId: data.studentId ?? "",
+      studentName: data.studentName ?? "",
+      term: data.term ?? "",
+      courses: (data.courses ?? []).map((c: any) => ({
+        ...c,
+        studentCourseId: c.studentCourseId || genId("SC"),
+        courseId: c.courseId || genId("C"),
+        segments: (c.segments ?? []).map((s: any) => ({
+          ...s,
+          segmentId: s.segmentId || genId("S"),
+        })),
+      })),
+    },
+  });
+  timetables.value = list;
+  return { timetables: list, index: list.length - 1 };
 }
 
 /** 当前展示的课表下标 */
 export const currentTimetableIndex = ref(0);
 
-/** 当前课表数据（渲染统一使用它） */
-export const activeEnrollment = computed(
-  () => timetables.value[currentTimetableIndex.value]!.enrollment,
-);
+/** 当前课表数据（渲染统一使用它；空列表时回退到空对象避免崩溃） */
+export const activeEnrollment = computed<StudentEnrollment>(() => {
+  const t = timetables.value[currentTimetableIndex.value];
+  if (t) return t.enrollment;
+  const first = timetables.value[0];
+  return (
+    first?.enrollment ?? { studentId: "", studentName: "", term: "", courses: [] }
+  ) as StudentEnrollment;
+});
 
 /** 当前课表标签 */
-export const currentOwner = computed(
-  () => timetables.value[currentTimetableIndex.value]!.owner,
-);
+export const currentOwner = computed(() => {
+  const t = timetables.value[currentTimetableIndex.value];
+  return t ? t.owner : (timetables.value[0]?.owner ?? "");
+});
 
 /** 当前课表完整对象（含同步标记等元信息） */
 export const activeTimetable = computed(

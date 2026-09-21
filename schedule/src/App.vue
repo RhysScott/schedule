@@ -11,7 +11,7 @@
 import { onMounted, watch } from 'vue';
 import TabBar from './components/TabBar.vue';
 import { isLoggedIn } from './composables/useAuth';
-import { loadTimetables } from './composables/useTimetable';
+import { loadTimetables, syncTimetableSource } from './composables/useTimetable';
 
 const designWidth = 375; // pixel
 const html = document.documentElement;
@@ -32,6 +32,7 @@ onMounted(() => {
 });
 watch(isLoggedIn, (v) => {
   if (v) loadTimetables();
+  syncTimetableSource();
 });
 </script>
 
