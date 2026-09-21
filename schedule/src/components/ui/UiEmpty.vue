@@ -1,13 +1,14 @@
 <template>
   <div class="ui-empty">
     <slot name="icon">
-      <span class="ui-empty__icon">📭</span>
+      <Inbox class="ui-empty__icon" />
     </slot>
     <p class="ui-empty__text">{{ text }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Inbox } from "lucide-vue-next";
 withDefaults(defineProps<{ text?: string }>(), { text: "暂无数据" });
 </script>
 
@@ -21,7 +22,8 @@ withDefaults(defineProps<{ text?: string }>(), { text: "暂无数据" });
   color: var(--ui-text-3);
 }
 .ui-empty__icon {
-  font-size: 0.18rem;
+  width: 0.18rem;
+  height: 0.18rem;
   opacity: 0.6;
 }
 .ui-empty__text {
