@@ -16,7 +16,7 @@
       <div class="group-title">显示设置</div>
       <div class="row">
         <span class="label">显示周末</span>
-        <UiSwitch v-model="settings.showWeekend" class="ctrl" />
+        <UiSwitch v-model="settings.showWeekend" />
       </div>
     </div>
 
@@ -24,23 +24,23 @@
       <div class="group-title">特殊状态显示方式</div>
       <div class="row">
         <span class="label">免修</span>
-        <UiSwitch v-model="settings.specialDisplay.exempt" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.exempt" />
       </div>
       <div class="row">
         <span class="label">置换</span>
-        <UiSwitch v-model="settings.specialDisplay.replaced" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.replaced" />
       </div>
       <div class="row">
         <span class="label">退课</span>
-        <UiSwitch v-model="settings.specialDisplay.dropped" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.dropped" />
       </div>
       <div class="row">
         <span class="label">线上课</span>
-        <UiSwitch v-model="settings.specialDisplay.online" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.online" />
       </div>
       <div class="row">
         <span class="label">混合课</span>
-        <UiSwitch v-model="settings.specialDisplay.hybrid" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.hybrid" />
       </div>
     </div>
   </div>

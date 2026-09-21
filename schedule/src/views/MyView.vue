@@ -57,15 +57,6 @@
       </div>
     </div>
 
-    <!-- 组织管理入口 -->
-    <div class="org-entry" @click="goOrgs">
-      <div class="org-entry__left">
-        <span class="org-entry__icon">🏛</span>
-        <span>组织管理</span>
-      </div>
-      <span class="org-entry__arrow">›</span>
-    </div>
-
     <!-- 登录 / 注册弹窗 -->
     <UiModal
       :show="authShow"
@@ -148,10 +139,6 @@ const accountInitial = computed(() =>
 
 function goSettings() {
   router.push("/settings");
-}
-
-function goOrgs() {
-  router.push("/orgs");
 }
 
 function openAuth(mode: "login" | "register") {
@@ -333,39 +320,7 @@ async function doLogout() {
   }
 }
 
-.org-entry {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 82%;
-  margin-top: 0.1rem;
-  padding: 0.09rem 0.1rem;
-  border-radius: 0.08rem;
-  background: #fff;
-  border: 0.01rem solid #eee;
-  cursor: pointer;
-  font-size: 0.09rem;
-  color: var(--ui-text);
 
-  .org-entry__left {
-    display: flex;
-    align-items: center;
-    gap: 0.06rem;
-  }
-
-  .org-entry__icon {
-    font-size: 0.14rem;
-  }
-
-  .org-entry__arrow {
-    color: var(--ui-text-3);
-    font-size: 0.14rem;
-  }
-
-  &:hover {
-    border-color: #42b983;
-  }
-}
 
 .auth-switch {
   margin-top: -0.04rem;

@@ -30,6 +30,8 @@ const emit = defineEmits<{ "update:modelValue": [v: boolean] }>();
   transition: background 0.15s, border-color 0.15s;
   padding: 0;
   flex-shrink: 0;
+  max-width: 0.26rem;
+  box-sizing: border-box;
 }
 .ui-switch__dot {
   position: absolute;

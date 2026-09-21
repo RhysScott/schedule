@@ -3,6 +3,9 @@
     <router-link to="/" class="tab-item" :class="{ active: route.path === '/' }">
       <Home />
     </router-link>
+    <router-link to="/orgs" class="tab-item" :class="{ active: route.path === '/orgs' }">
+      <Users />
+    </router-link>
     <router-link to="/my" class="tab-item" :class="{ active: route.path === '/my' }">
       <User />
     </router-link>
@@ -11,7 +14,7 @@
 
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { Home, User } from "lucide-vue-next";
+import { Home, User, Users } from "lucide-vue-next";
 
 const route = useRoute();
 </script>
