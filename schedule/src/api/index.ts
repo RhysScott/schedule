@@ -56,6 +56,26 @@ export async function updateCourse(
   return handle<TimetableEntry[]>(res);
 }
 
+/** 修改课表基本信息（名字/学生/学期），返回更新后的全部课表 */
+export async function updateTimetableInfo(
+  timetableIndex: number,
+  fields: {
+    owner?: string;
+    studentName?: string;
+    studentId?: string;
+    term?: string;
+    termStartDate?: string;
+    totalWeeks?: number;
+  },
+): Promise<TimetableEntry[]> {
+  const res = await fetch(`/api/timetables/${timetableIndex}`, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(fields),
+  });
+  return handle<TimetableEntry[]>(res);
+}
+
 /** 导出课表码 */
 export async function fetchShareCode(timetableIndex: number): Promise<string> {
   const res = await fetch(`/api/timetables/${timetableIndex}/code`);

@@ -367,6 +367,32 @@ def create_timetable(payload: TimetableIn) -> List[Dict[str, Any]]:
         return [_timetable_to_dict(x, db) for x in rows]
 
 
+@app.put("/api/timetables/{index}")
+def update_timetable_info(index: int, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """更新课表基本信息：名字(owner)、学生姓名/学号、学期名、开学日期、总周数。"""
+    with SessionLocal() as db:
+        rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
+        if index < 0 or index >= len(rows):
+            raise HTTPException(status_code=404, detail="课表不存在")
+        t = rows[index]
+        if "owner" in payload:
+            t.owner = str(payload["owner"] or "").strip() or "我的课表"
+        if "studentName" in payload:
+            t.student_name = str(payload["studentName"] or "")
+        if "studentId" in payload:
+            t.student_id = str(payload["studentId"] or "")
+        if "term" in payload:
+            t.term = str(payload["term"] or "")
+        if "termStartDate" in payload:
+            t.term_start_date = str(payload["termStartDate"] or "")
+        if "totalWeeks" in payload:
+            v = int(payload["totalWeeks"] or 16)
+            t.total_weeks = max(1, min(60, v))
+        db.commit()
+        rows = db.scalars(select(Timetable).order_by(Timetable.id)).all()
+        return [_timetable_to_dict(x, db) for x in rows]
+
+
 @app.delete("/api/timetables/{index}")
 def delete_timetable(index: int) -> List[Dict[str, Any]]:
     with SessionLocal() as db:

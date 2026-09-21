@@ -6,6 +6,7 @@ import {
   fetchTimetables,
   importTimetable as apiImportTimetable,
   updateCourse as apiUpdateCourse,
+  updateTimetableInfo as apiUpdateTimetableInfo,
 } from "@/api";
 import { currentUser, isLoggedIn } from "@/composables/useAuth";
 import type {
@@ -870,6 +871,36 @@ export async function deleteTimetable(timetableIndex: number): Promise<Timetable
   if (!list.length) {
     list.push(emptyTimetable());
   }
+  timetables.value = list;
+  return list;
+}
+
+/** 修改课表基本信息：名字/学生姓名/学号/学期名/开学日期/总周数 */
+export async function updateTimetableInfo(
+  timetableIndex: number,
+  fields: {
+    owner?: string;
+    studentName?: string;
+    studentId?: string;
+    term?: string;
+    termStartDate?: string;
+    totalWeeks?: number;
+  },
+): Promise<TimetableEntry[]> {
+  if (isLoggedIn.value) {
+    const data = await apiUpdateTimetableInfo(timetableIndex, fields);
+    cloudTimetables.value = data;
+    return data;
+  }
+  const list = cloneList();
+  const t = list[timetableIndex];
+  if (!t) throw new Error("课表不存在");
+  if (fields.owner !== undefined) t.owner = fields.owner.trim() || "我的课表";
+  if (fields.studentName !== undefined) t.enrollment.studentName = fields.studentName;
+  if (fields.studentId !== undefined) t.enrollment.studentId = fields.studentId;
+  if (fields.term !== undefined) t.enrollment.term = fields.term;
+  if (fields.termStartDate !== undefined) t.enrollment.termStartDate = fields.termStartDate;
+  if (fields.totalWeeks !== undefined) t.enrollment.totalWeeks = fields.totalWeeks;
   timetables.value = list;
   return list;
 }

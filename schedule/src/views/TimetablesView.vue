@@ -50,6 +50,18 @@
             circle
             size="tiny"
             class="tt-icon-btn"
+            title="编辑课表信息"
+            @click.stop="openEdit(i)"
+          >
+            <template #icon>
+              <Pencil />
+            </template>
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            circle
+            size="tiny"
+            class="tt-icon-btn"
             title="导出课表码"
             @click.stop="share(i)"
           >
@@ -106,6 +118,44 @@
       </template>
     </UiModal>
 
+    <!-- 编辑课表信息弹窗 -->
+    <UiModal
+      :show="editIndex >= 0"
+      title="编辑课表"
+      @update:show="(v: boolean) => (v || (editIndex = -1))"
+    >
+      <div class="edit-form">
+        <UiFormItem label="课表名字">
+          <UiInput v-model="editForm.owner" placeholder="如 我的 / 宝宝" />
+        </UiFormItem>
+        <UiFormItem label="学生姓名">
+          <UiInput v-model="editForm.studentName" placeholder="姓名" />
+        </UiFormItem>
+        <UiFormItem label="学号">
+          <UiInput v-model="editForm.studentId" placeholder="学号" />
+        </UiFormItem>
+        <UiFormItem label="学期">
+          <UiInput v-model="editForm.term" placeholder="如 2026秋季学期" />
+        </UiFormItem>
+        <div class="edit-row">
+          <UiFormItem label="开学日期" class="edit-half">
+            <UiInput v-model="editForm.termStartDate" placeholder="2026-09-14" />
+          </UiFormItem>
+          <UiFormItem label="总周数" class="edit-half">
+            <UiInputNumber v-model="editForm.totalWeeks" :min="1" :max="60" />
+          </UiFormItem>
+        </div>
+      </div>
+      <template #footer>
+        <div class="import-footer">
+          <UiButton variant="ghost" @click="editIndex = -1">取消</UiButton>
+          <UiButton variant="primary" :disabled="savingEdit" @click="saveEdit">
+            {{ savingEdit ? "保存中…" : "保存" }}
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
     <!-- 删除确认弹窗 -->
     <UiModal
       :show="confirmDelete >= 0"
@@ -130,13 +180,15 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   UiButton,
+  UiFormItem,
   UiInput,
+  UiInputNumber,
   UiModal,
   UiRadioGroup,
   UiTag,
   uiMessage,
 } from "@/components/ui";
-import { ChevronLeft, Download, Share2, Trash2 } from "lucide-vue-next";
+import { ChevronLeft, Download, Pencil, Share2, Trash2 } from "lucide-vue-next";
 import {
   timetables,
   currentTimetableIndex,
@@ -146,7 +198,9 @@ import {
   deleteTimetable,
   fetchShareCode,
   importTimetable,
+  updateTimetableInfo,
 } from "@/composables/useTimetable";
+import { reactive } from "vue";
 
 const router = useRouter();
 
@@ -156,6 +210,49 @@ const importCode = ref("");
 const importMode = ref<"copy" | "sync">("copy");
 const importing = ref(false);
 const confirmDelete = ref(-1);
+
+const editIndex = ref(-1);
+const savingEdit = ref(false);
+const editForm = reactive({
+  owner: "",
+  studentName: "",
+  studentId: "",
+  term: "",
+  termStartDate: "",
+  totalWeeks: 16,
+});
+
+function openEdit(i: number) {
+  const t = timetables.value[i];
+  if (!t) return;
+  editIndex.value = i;
+  editForm.owner = t.owner;
+  editForm.studentName = t.enrollment.studentName ?? "";
+  editForm.studentId = t.enrollment.studentId ?? "";
+  editForm.term = t.enrollment.term ?? "";
+  editForm.termStartDate = t.enrollment.termStartDate ?? "";
+  editForm.totalWeeks = t.enrollment.totalWeeks || 16;
+}
+
+async function saveEdit() {
+  savingEdit.value = true;
+  try {
+    timetables.value = await updateTimetableInfo(editIndex.value, {
+      owner: editForm.owner,
+      studentName: editForm.studentName,
+      studentId: editForm.studentId,
+      term: editForm.term,
+      termStartDate: editForm.termStartDate,
+      totalWeeks: editForm.totalWeeks,
+    });
+    uiMessage.success("课表信息已保存");
+    editIndex.value = -1;
+  } catch (e) {
+    uiMessage.error("保存失败：" + ((e as Error).message ?? String(e)));
+  } finally {
+    savingEdit.value = false;
+  }
+}
 
 function select(i: number) {
   currentTimetableIndex.value = i;
@@ -232,6 +329,22 @@ async function doDelete(i: number) {
 </script>
 
 <style scoped>
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.edit-row {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.edit-half {
+  flex: 1;
+  min-width: 0;
+}
+
 .tt-container {
   display: flex;
   flex-direction: column;
@@ -362,7 +475,23 @@ async function doDelete(i: number) {
 
 /* 桌面端（≥1024px）：100vw 全屏布局 + 四周留白 */
 @media (min-width: 64em) {
-  .tt-container {
+  .edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.edit-row {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.edit-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.tt-container {
     width: 100vw;
     padding: 0.05rem 0.12rem;
   }
