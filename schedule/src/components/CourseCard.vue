@@ -34,10 +34,15 @@ const GAP = 0.01;
 function measure() {
   const c = el.value;
   if (!c) return;
-  const h = c.clientHeight / 100; // rem 基准在 App.vue 中按 100px 设定
+  // rem 基准随视口变化（移动端 104px、桌面 170px），必须取实际值，
+  // 否则高度判断偏宽松会导致文字溢出裁半行
+  const rem =
+    parseFloat(getComputedStyle(document.documentElement).fontSize) || 100;
+  const h = c.clientHeight / rem;
   let lines = 1;
-  if (h >= PAD_V + NAME_LINE + GAP + META_LINE + GAP + META_LINE) lines = 3;
-  else if (h >= PAD_V + NAME_LINE + GAP + META_LINE) lines = 2;
+  // 判断留一点余量，避免像素误差导致裁半行
+  if (h >= PAD_V + NAME_LINE + GAP + META_LINE + GAP + META_LINE + 0.02) lines = 3;
+  else if (h >= PAD_V + NAME_LINE + GAP + META_LINE + 0.02) lines = 2;
   hiddenCount.value = lines >= 3 ? 0 : lines === 2 ? 1 : 2;
 }
 
