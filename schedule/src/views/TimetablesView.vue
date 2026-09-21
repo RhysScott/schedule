@@ -75,7 +75,7 @@
 
     <div class="tt-tip">
       点击课表卡片切换查看 · 分享按钮可导出课表码
-      <template v-if="!isLoggedIn">（未登录时数据仅保存在本机）</template>
+      <template v-if="!isLoggedIn">未登录时数据仅保存在本机</template>
     </div>
 
     <!-- 导入课表码弹窗 -->
@@ -84,15 +84,15 @@
         v-model="importCode"
         type="textarea"
         :rows="2"
-        placeholder="粘贴对方分享的课表码（UUID）"
+        placeholder="粘贴对方分享的课表码"
       />
       <div class="import-mode">
         <div class="mode-label">导入方式</div>
         <UiRadioGroup
           v-model="importMode"
           :options="[
-            { label: '仅拷贝数据（独立，互不影响）', value: 'copy' },
-            { label: '同步导入（源课表变化实时更新）', value: 'sync' },
+            { label: '仅拷贝数据，互不影响', value: 'copy' },
+            { label: '同步导入，实时跟随源课表', value: 'sync' },
           ]"
         />
       </div>

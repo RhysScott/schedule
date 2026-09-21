@@ -71,8 +71,8 @@ function onInput(e: Event) {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.09rem;
-  padding: 0.055rem 0.09rem;
+  font-size: 0.11rem;
+  padding: 0.07rem 0.1rem;
   color: var(--ui-text);
   font-family: inherit;
 }

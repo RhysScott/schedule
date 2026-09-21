@@ -107,8 +107,8 @@ onMounted(() => {
   border: 0.01rem solid var(--ui-border);
   border-radius: var(--ui-radius);
   background: #fff;
-  padding: 0.055rem 0.09rem;
-  font-size: 0.09rem;
+  padding: 0.07rem 0.1rem;
+  font-size: 0.11rem;
   cursor: pointer;
   color: var(--ui-text);
   font-family: inherit;

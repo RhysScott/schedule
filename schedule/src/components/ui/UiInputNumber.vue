@@ -63,10 +63,10 @@ function normalize() {
 .ui-num__btn {
   border: none;
   background: #fafafa;
-  font-size: 0.1rem;
+  font-size: 0.11rem;
   line-height: 1;
-  width: 0.15rem;
-  height: 0.15rem;
+  width: 0.17rem;
+  height: 0.17rem;
   display: flex;
   align-items: center;
   justify-content: center;

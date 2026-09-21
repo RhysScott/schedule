@@ -21,7 +21,7 @@
           <UiSelect v-model="form.enrollStatus" :options="statusOptions" />
         </UiFormItem>
 
-      <div class="form-section">时间安排（可多时间段）</div>
+      <div class="form-section">时间安排，可添加多个时间段</div>
       <div
         v-for="(seg, idx) in form.segments"
         :key="idx"
@@ -49,7 +49,7 @@
             :disabled="isLocked(idx)"
           />
           <span v-if="isLocked(idx)" class="lock-tip">
-            （从课表该位置进入，不可改）
+            从课表位置进入，不可修改
           </span>
         </UiFormItem>
         <div class="form-row">
@@ -333,11 +333,20 @@ function handleSubmit() {
 }
 
 .form-row {
+  /* 移动端一行一个组件，避免并排太挤 */
   display: flex;
-  gap: 0.08rem;
+  flex-direction: column;
+  gap: 0.02rem;
 
   .half {
     flex: 1;
+  }
+}
+
+@media (min-width: 64em) {
+  .form-row {
+    flex-direction: row;
+    gap: 0.08rem;
   }
 }
 

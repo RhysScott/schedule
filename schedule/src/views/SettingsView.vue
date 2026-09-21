@@ -71,7 +71,7 @@
     </div>
 
     <div class="group">
-      <div class="group-title">特殊状态显示（置灰 + 标记）</div>
+      <div class="group-title">特殊状态显示方式</div>
       <div class="row">
         <span class="label">免修</span>
         <UiSwitch v-model="settings.specialDisplay.exempt" class="ctrl" />

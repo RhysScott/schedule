@@ -25,7 +25,7 @@ withDefaults(
 }
 .ui-form-item__label {
   display: block;
-  font-size: 0.08rem;
+  font-size: 0.1rem;
   color: var(--ui-text-2);
   margin-bottom: 0.03rem;
 }

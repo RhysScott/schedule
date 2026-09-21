@@ -87,7 +87,7 @@
       <UiFormItem label="组织名称">
         <UiInput v-model="createForm.name" placeholder="如：数学学院" />
       </UiFormItem>
-      <UiFormItem label="父组织（可选）">
+      <UiFormItem label="父组织">
         <UiSelect
           v-model="createForm.parentId"
           :options="parentOptions"
@@ -142,7 +142,7 @@
           </div>
           <div class="info-row">
             <span class="info-label">父组织</span>
-            <span class="info-value">{{ detail.parentName ?? "无（顶级组织）" }}</span>
+            <span class="info-value">{{ detail.parentName ?? "顶级组织" }}</span>
           </div>
         </div>
 
@@ -171,7 +171,7 @@
         </div>
 
         <div class="detail-section">
-          <div class="detail-title">成员（{{ detail.members.length }}）</div>
+          <div class="detail-title">成员 · {{ detail.members.length }}</div>
           <div v-if="!detail.members.length" class="detail-empty">暂无成员</div>
           <div v-for="m in approvedMembers" :key="m.userId" class="member-row">
             <span class="member-name">{{ m.username }}</span>
@@ -192,7 +192,7 @@
 
         <div class="detail-section">
           <div class="detail-title">
-            <span>子组织（{{ detail.children.length }}）</span>
+            <span>子组织 · {{ detail.children.length }}</span>
             <UiButton
               size="sm"
               class="child-btn"

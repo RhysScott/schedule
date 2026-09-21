@@ -81,14 +81,14 @@ function maskCloseEnabled() {
   flex-shrink: 0;
 }
 .ui-modal__title {
-  font-size: 0.1rem;
+  font-size: 0.13rem;
   font-weight: bold;
   color: var(--ui-text);
 }
 .ui-modal__close {
   border: none;
   background: transparent;
-  font-size: 0.09rem;
+  font-size: 0.11rem;
   color: var(--ui-text-2);
   cursor: pointer;
   padding: 0.02rem;
