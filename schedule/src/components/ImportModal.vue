@@ -16,10 +16,11 @@
 
       <!-- 教务在线 -->
       <div v-if="tab === 'jw-url'" class="pane">
-        <p class="hint">填写教务系统课表接口地址，在线抓取后自动导入</p>
-        <UiInput v-model="jwUrl" placeholder="https://jw.xxx.edu.cn/.../getTimetable" />
-        <UiButton variant="primary" block :disabled="loading || !jwUrl.trim()" @click="importByUrl">
-          {{ loading ? "导入中…" : "在线导入" }}
+        <p class="hint">输入成都东软学院教务系统账号，自动抓取本学期课表</p>
+        <UiInput v-model="jwUsername" placeholder="学号" />
+        <UiInput v-model="jwPassword" type="password" placeholder="密码" />
+        <UiButton variant="primary" block :disabled="loading || !jwUsername.trim() || !jwPassword" @click="importByJwLogin">
+          {{ loading ? "登录抓取中…" : "登录并导入" }}
         </UiButton>
       </div>
 
@@ -70,7 +71,8 @@ const tabs = [
 const tab = ref<string>("jw-url");
 
 const loading = ref(false);
-const jwUrl = ref("");
+const jwUsername = ref("");
+const jwPassword = ref("");
 const code = ref("");
 const mode = ref<"copy" | "sync">("copy");
 const modeOptions = [
@@ -80,12 +82,16 @@ const modeOptions = [
 const fileRef = ref<HTMLInputElement | null>(null);
 const fileName = ref("");
 
-async function importByUrl() {
+async function importByJwLogin() {
   loading.value = true;
   try {
-    const res = await fetch(`/api/jw-proxy?url=${encodeURIComponent(jwUrl.value.trim())}`);
+    const res = await fetch("/api/jw/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: jwUsername.value.trim(), password: jwPassword.value }),
+    });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail ?? "抓取失败");
+    if (!res.ok) throw new Error(data.detail ?? "教务抓取失败");
     await importJwData(data);
     uiMessage.success("导入成功");
     emit("imported");

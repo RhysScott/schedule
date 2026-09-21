@@ -13,9 +13,6 @@
           <UiFormItem label="授课老师" class="half">
             <UiInput v-model="form.teacher" placeholder="选填" />
           </UiFormItem>
-          <UiFormItem label="学分" class="half">
-            <UiInputNumber v-model="form.credit" :min="0" :max="20" />
-          </UiFormItem>
         </div>
         <UiFormItem label="状态">
           <UiSelect v-model="form.enrollStatus" :options="statusOptions" />

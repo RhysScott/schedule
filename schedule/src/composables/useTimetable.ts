@@ -1216,7 +1216,7 @@ export function parseJwData(data: any): {
       studentCourseId: "",
       courseId: "",
       courseName: String(it.courseName ?? "未知课程"),
-      credit: Number(it.credit) || 0,
+      credit: 0,
       teacher,
       campus: "",
       enrollStatus: "normal",

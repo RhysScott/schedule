@@ -426,6 +426,91 @@ def share_code(index: int) -> Dict[str, str]:
         return {"code": t.share_code}
 
 
+@app.post("/api/jw/login")
+def jw_login(payload: Dict[str, str]) -> Any:
+    """教务在线导入：输入学号密码，模拟教务系统登录并抓取当前学期课表 JSON。
+    参考 fetch_json.py 的登录流程（AES 加密密码 + session 会话）。
+    """
+    username = (payload.get("username") or "").strip()
+    password = payload.get("password") or ""
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="学号和密码不能为空")
+
+    import base64
+
+    import requests
+    from Crypto.Cipher import AES
+
+    BASE = "https://jw.dean.nsu.edu.cn"
+    KEY = b"r0aNwZvApKlj9C0r"
+    UA = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+
+    def crypto_pwd(plain: str) -> str:
+        pwd_b = plain.encode("utf-8")
+        pad = AES.block_size - len(pwd_b) % AES.block_size
+        padded = pwd_b + bytes([pad] * pad)
+        return base64.b64encode(AES.new(KEY, AES.MODE_ECB).encrypt(padded)).decode("utf-8")
+
+    sess = requests.Session()
+    sess.headers.update({
+        "User-Agent": UA,
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": BASE,
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+    })
+    try:
+        service = "http%3A%2F%2Fjw.dean.nsu.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do"
+        login_page = BASE + "/jwapp/sys/emapfunauth/pages/funauth-login.do?service=" + service
+        login_url = BASE + "/jwapp/sys/emapfunauth/pages/loginValidate.do"
+        home_url = BASE + "/jwapp/sys/homeapp/index.do"
+        sess.get(login_page, timeout=15)
+        sess.post(login_url, data={
+            "userName": username,
+            "password": crypto_pwd(password),
+            "isWeekLogin": "false",
+        }, timeout=15)
+        check = sess.get(home_url, allow_redirects=False, timeout=15)
+        if check.status_code != 200:
+            raise HTTPException(status_code=401, detail="登录失败：学号或密码不正确")
+        # 学期识别
+        term_code = None
+        try:
+            resp = sess.post(BASE + "/jwapp/sys/homeapp/api/home/kb/xnxq.do", data={}, timeout=15)
+            items = (resp.json().get("datas") or [])
+            for item in items:
+                sel = item.get("selected")
+                if sel is True or str(sel).lower() == "true":
+                    term_code = item.get("itemCode")
+                    break
+            if not term_code and items:
+                term_code = items[0].get("itemCode")
+        except Exception:  # noqa: BLE001
+            pass
+        if not term_code:
+            raise HTTPException(status_code=502, detail="无法识别教务当前学期")
+        # 抓课表
+        url = BASE + "/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
+        resp = sess.post(url, data={
+            "termCode": term_code,
+            "campusCode": "1",
+            "type": "term",
+        }, headers={"Referer": BASE + "/jwapp/sys/homeapp/index.do"}, timeout=20)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"课表接口请求失败：HTTP {resp.status_code}")
+        return resp.json()
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"教务访问失败：{e}")
+
 @app.get("/api/jw-proxy")
 def jw_proxy(url: str):
     """教务系统课表接口代理：前端跨域抓取（仅允许 http/https 地址）。"""
