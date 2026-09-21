@@ -1,8 +1,8 @@
 <template>
-  <div class="course-card" :class="{ muted: isSpecial }" :style="cardStyle">
+  <div class="course-card" :class="{ muted: isSpecial }" :style="cardStyle" @click="emit('click')">
+    <span v-if="isSpecial" class="status-badge">{{ statusText }}</span>
     <div class="course-name">
       {{ course.name }}
-      <span v-if="isSpecial" class="status-badge">{{ statusText }}</span>
     </div>
     <div v-if="roomText" class="course-meta">@{{ roomText }}</div>
     <div v-if="course.teacher" class="course-meta">{{ course.teacher }}</div>
@@ -16,6 +16,10 @@ import { settings } from "@/composables/useTimetable";
 
 const props = defineProps<{
   course: RenderCourse;
+}>();
+
+const emit = defineEmits<{
+  click: [];
 }>();
 
 // 显示维度：选课状态（免修/置换/退课）优先，其次授课方式（线上/混合）
@@ -138,18 +142,32 @@ const cardStyle = computed(() =>
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 0.02rem;
-  padding: 0.07rem 0.06rem;
+  /* 顶部对齐：内容超高一侧（底部）溢出，避免上下各裁一半 */
+  justify-content: flex-start;
+  gap: 0.015rem;
+  padding: 0.05rem 0.06rem;
   border-radius: 0.06rem;
   overflow: hidden;
   line-height: 1.3;
+  cursor: pointer;
+  transition: filter 0.15s;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+/* 文字行不允许被 flex 压缩（压缩会把文字挤成一行后裁剪） */
+.course-card .course-name,
+.course-card .course-meta {
+  flex-shrink: 0;
 }
 /* 课程名：主信息，略大加粗；空间足够时允许换行，不省略 */
 .course-name {
   font-size: 0.1rem;
   font-weight: bold;
   overflow: hidden;
+  /* 给右上角状态角标让位 */
+  padding-right: 0.18rem;
 }
 /* 教室/老师：次信息，小号弱化；空间足够时允许换行，不省略 */
 .course-meta {
@@ -158,10 +176,11 @@ const cardStyle = computed(() =>
   overflow: hidden;
 }
 
-/* 特殊状态（免修/置换/退课）：灰底 + 状态角标 */
+/* 特殊状态（免修/置换/退课）：灰底 + 右上角状态角标 */
 .status-badge {
-  display: inline-block;
-  margin-left: 0.04rem;
+  position: absolute;
+  top: 0.02rem;
+  right: 0.02rem;
   padding: 0 0.03rem;
   font-size: 0.06rem;
   font-weight: normal;
@@ -169,7 +188,7 @@ const cardStyle = computed(() =>
   border-radius: 0.03rem;
   background: #e0e0e0;
   color: #777;
-  vertical-align: 0.04rem;
+  white-space: nowrap;
 }
 .course-card.muted .course-meta {
   opacity: 0.5;

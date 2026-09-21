@@ -1,0 +1,21 @@
+/* 自定义组件库全局样式与设计令牌（用户侧、柔和、rem 单位） */
+:root {
+  --ui-primary: #42b983;
+  --ui-primary-deep: #2e8f6f;
+  --ui-primary-soft: #e6f5ee;
+  --ui-text: #333333;
+  --ui-text-2: #888888;
+  --ui-text-3: #aaaaaa;
+  --ui-border: #e6e6e6;
+  --ui-bg: #f7f7f7;
+  --ui-danger: #e56b6b;
+  --ui-warning: #e0a458;
+  --ui-info: #6a9fd8;
+  --ui-radius: 0.08rem;
+  --ui-shadow: 0 0.02rem 0.08rem rgba(0, 0, 0, 0.08);
+}
+
+/* 通用按钮/输入禁用态 */
+* {
+  box-sizing: border-box;
+}

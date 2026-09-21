@@ -1,15 +1,15 @@
 <template>
   <div class="settings-container">
     <div class="settings-header">
-      <NButton quaternary circle size="small" class="back-btn" @click="goBack">
+      <UiButton variant="ghost" circle size="sm" class="back-btn" @click="goBack">
         <template #icon>
           <ChevronLeft />
         </template>
-      </NButton>
+      </UiButton>
       <span class="title">设置</span>
-      <NButton text type="primary" class="save-btn" @click="onSave">
+      <UiButton variant="text" class="save-btn" @click="onSave">
         保存
-      </NButton>
+      </UiButton>
     </div>
 
     <div class="group">
@@ -20,11 +20,11 @@
       </div>
       <div class="row">
         <span class="label">教学周总数</span>
-        <NInputNumber v-model:value="totalWeeksModel" :min="1" :max="30" size="small" class="ctrl" />
+        <UiInputNumber v-model="totalWeeksModel" :min="1" :max="30" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">显示周末</span>
-        <NSwitch v-model:value="settings.showWeekend" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.showWeekend" class="ctrl" />
       </div>
     </div>
 
@@ -33,40 +33,40 @@
       <div class="row">
         <span class="label">每节课时长</span>
         <span class="ctrl-wrap">
-          <NInputNumber v-model:value="durationModel" :min="20" :max="120" size="small" class="ctrl" />
+          <UiInputNumber v-model="durationModel" :min="20" :max="120" class="ctrl" />
           <span class="unit">分</span>
         </span>
       </div>
       <div class="row">
         <span class="label">课间时长</span>
         <span class="ctrl-wrap">
-          <NInputNumber v-model:value="breakModel" :min="0" :max="60" size="small" class="ctrl" />
+          <UiInputNumber v-model="breakModel" :min="0" :max="60" class="ctrl" />
           <span class="unit">分</span>
         </span>
       </div>
       <div class="row">
         <span class="label">上午节数</span>
-        <NInputNumber v-model:value="morningCountModel" :min="1" :max="10" size="small" class="ctrl" />
+        <UiInputNumber v-model="morningCountModel" :min="1" :max="10" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">下午节数</span>
-        <NInputNumber v-model:value="afternoonCountModel" :min="1" :max="10" size="small" class="ctrl" />
+        <UiInputNumber v-model="afternoonCountModel" :min="1" :max="10" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">晚上节数</span>
-        <NInputNumber v-model:value="nightCountModel" :min="1" :max="10" size="small" class="ctrl" />
+        <UiInputNumber v-model="nightCountModel" :min="1" :max="10" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">上午首节开始</span>
-        <NTimePicker v-model:formatted-value="morningStart" format="HH:mm" size="small" class="ctrl" />
+        <UiTimePicker v-model="morningStart" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">下午首节开始</span>
-        <NTimePicker v-model:formatted-value="afternoonStart" format="HH:mm" size="small" class="ctrl" />
+        <UiTimePicker v-model="afternoonStart" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">晚上首节开始</span>
-        <NTimePicker v-model:formatted-value="nightStart" format="HH:mm" size="small" class="ctrl" />
+        <UiTimePicker v-model="nightStart" class="ctrl" />
       </div>
     </div>
 
@@ -74,23 +74,23 @@
       <div class="group-title">特殊状态显示（置灰 + 标记）</div>
       <div class="row">
         <span class="label">免修</span>
-        <NSwitch v-model:value="settings.specialDisplay.exempt" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.exempt" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">置换</span>
-        <NSwitch v-model:value="settings.specialDisplay.replaced" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.replaced" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">退课</span>
-        <NSwitch v-model:value="settings.specialDisplay.dropped" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.dropped" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">线上课</span>
-        <NSwitch v-model:value="settings.specialDisplay.online" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.online" class="ctrl" />
       </div>
       <div class="row">
         <span class="label">混合课</span>
-        <NSwitch v-model:value="settings.specialDisplay.hybrid" size="small" class="ctrl" />
+        <UiSwitch v-model="settings.specialDisplay.hybrid" class="ctrl" />
       </div>
     </div>
   </div>
@@ -99,7 +99,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { NButton, NInputNumber, NSwitch, NTimePicker, useMessage } from "naive-ui";
+import {
+  UiButton,
+  UiInputNumber,
+  UiSwitch,
+  UiTimePicker,
+  uiMessage,
+} from "@/components/ui";
 import { ChevronLeft } from "lucide-vue-next";
 import {
   settings,
@@ -108,7 +114,7 @@ import {
 } from "@/composables/useTimetable";
 
 const router = useRouter();
-const message = useMessage();
+
 
 function goBack() {
   router.back();
@@ -196,7 +202,7 @@ function onSave() {
   // 改学期日期/总周数后，回到今天所在的周
   goToTodayWeek();
   saveSettings();
-  message.success("设置已保存");
+  uiMessage.success("设置已保存");
 }
 </script>
 
@@ -218,7 +224,7 @@ function onSave() {
   padding: 0.1rem 0;
 
   .back-btn {
-    --n-icon-size: 0.16rem;
+    color: var(--ui-text-2);
   }
 
   .title {
@@ -298,6 +304,14 @@ function onSave() {
 
   &:focus {
     border-color: #42b983;
+  }
+}
+
+/* 桌面端（≥1024px）：100vw 全屏布局 + 四周留白 */
+@media (min-width: 64em) {
+  .settings-container {
+    width: 100vw;
+    padding: 0.05rem 0.12rem;
   }
 }
 </style>

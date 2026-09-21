@@ -1,13 +1,24 @@
 <template>
   <div class="tt-container">
     <div class="tt-header">
-      <NButton quaternary circle size="small" class="tt-back" @click="goBack">
+      <UiButton variant="ghost" circle size="sm" class="tt-back" @click="goBack">
         <template #icon>
           <ChevronLeft />
         </template>
-      </NButton>
+      </UiButton>
       <span class="tt-title">全部课表</span>
-      <span class="tt-spacer" />
+      <UiButton
+        variant="ghost"
+        circle
+        size="sm"
+        class="tt-import-btn"
+        title="通过课表码导入"
+        @click="openImport"
+      >
+        <template #icon>
+          <Download />
+        </template>
+      </UiButton>
     </div>
 
     <div class="tt-list">
@@ -32,24 +43,97 @@
           </div>
           <div class="tt-sub">{{ t.enrollment.term }}</div>
         </div>
-        <ChevronRight class="tt-arrow" />
+        <div class="tt-actions">
+          <UiButton
+            variant="ghost"
+            circle
+            size="tiny"
+            class="tt-icon-btn"
+            title="导出课表码"
+            @click.stop="share(i)"
+          >
+            <template #icon>
+              <Share2 />
+            </template>
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            circle
+            size="tiny"
+            class="tt-icon-btn"
+            title="删除课表"
+            @click.stop="confirmDelete = i"
+          >
+            <template #icon>
+              <Trash2 />
+            </template>
+          </UiButton>
+        </div>
       </div>
     </div>
 
-    <div class="tt-tip">点击课表卡片即可切换查看</div>
+    <div class="tt-tip">点击课表卡片切换查看 · 分享按钮可导出课表码</div>
+
+    <!-- 导入课表码弹窗 -->
+    <UiModal :show="importShow" title="导入课表" @update:show="(v: boolean) => (importShow = v)">
+      <UiInput
+        v-model="importCode"
+        type="textarea"
+        :rows="3"
+        placeholder="粘贴对方分享的课表码（UUID）"
+      />
+      <template #footer>
+        <div class="import-footer">
+          <UiButton variant="ghost" @click="importShow = false">取消</UiButton>
+          <UiButton variant="primary" :disabled="importing" @click="doImport">
+            {{ importing ? "导入中…" : "导入" }}
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
+    <!-- 删除确认弹窗 -->
+    <UiModal
+      :show="confirmDelete >= 0"
+      title="删除课表"
+      @update:show="(v: boolean) => (v || (confirmDelete = -1))"
+    >
+      <p class="tt-confirm-text">
+        确定删除「{{ confirmDelete >= 0 ? timetables[confirmDelete]?.owner : "" }}」的课表？
+      </p>
+      <template #footer>
+        <div class="import-footer">
+          <UiButton variant="ghost" @click="confirmDelete = -1">取消</UiButton>
+          <UiButton variant="danger" @click="doDelete(confirmDelete)">删除</UiButton>
+        </div>
+      </template>
+    </UiModal>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { NButton } from "naive-ui";
-import { ChevronLeft, ChevronRight } from "lucide-vue-next";
+import {
+  UiButton,
+  UiInput,
+  UiModal,
+  uiMessage,
+} from "@/components/ui";
+import { ChevronLeft, Download, Share2, Trash2 } from "lucide-vue-next";
 import {
   timetables,
   currentTimetableIndex,
 } from "@/composables/useTimetable";
+import { deleteTimetable, fetchShareCode, importTimetable } from "@/api";
 
 const router = useRouter();
+
+
+const importShow = ref(false);
+const importCode = ref("");
+const importing = ref(false);
+const confirmDelete = ref(-1);
 
 function select(i: number) {
   currentTimetableIndex.value = i;
@@ -58,6 +142,68 @@ function select(i: number) {
 
 function goBack() {
   router.push("/");
+}
+
+function openImport() {
+  importCode.value = "";
+  importShow.value = true;
+}
+
+async function share(i: number) {
+  try {
+    const code = await fetchShareCode(i);
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      // 兼容无剪贴板权限的环境：textarea + execCommand 兜底
+      const ta = document.createElement("textarea");
+      ta.value = code;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    uiMessage.success("课表码已复制，分享给好友即可导入");
+  } catch (e) {
+    uiMessage.error("复制失败：" + ((e as Error).message ?? String(e)));
+  }
+}
+
+async function doImport() {
+  const code = importCode.value.trim();
+  if (!code) {
+    uiMessage.warning("请粘贴课表码");
+    return;
+  }
+  importing.value = true;
+  try {
+    const data = await importTimetable(code);
+    timetables.value = data.timetables;
+    currentTimetableIndex.value = data.index;
+    uiMessage.success("导入成功，已切换到新课表");
+    importShow.value = false;
+    router.push("/");
+  } catch (e) {
+    uiMessage.error("导入失败：" + ((e as Error).message ?? String(e)));
+  } finally {
+    importing.value = false;
+  }
+}
+
+async function doDelete(i: number) {
+  try {
+    timetables.value = await deleteTimetable(i);
+    if (currentTimetableIndex.value >= timetables.value.length) {
+      currentTimetableIndex.value = timetables.value.length - 1;
+    }
+    uiMessage.success("课表已删除");
+  } catch (e) {
+    uiMessage.error("删除失败：" + ((e as Error).message ?? String(e)));
+  } finally {
+    confirmDelete.value = -1;
+  }
 }
 </script>
 
@@ -76,18 +222,15 @@ function goBack() {
   justify-content: space-between;
   padding: 0.08rem 0;
 
-  .tt-back {
-    --n-icon-size: 0.16rem;
+  .tt-back,
+  .tt-import-btn {
+    color: var(--ui-text-2);
   }
 
   .tt-title {
     font-size: 0.14rem;
     font-weight: bold;
     color: #333;
-  }
-
-  .tt-spacer {
-    width: 0.28rem;
   }
 }
 
@@ -162,9 +305,15 @@ function goBack() {
     }
   }
 
-  .tt-arrow {
-    color: #ccc;
+  .tt-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.02rem;
     flex-shrink: 0;
+
+    .tt-icon-btn {
+      color: var(--ui-text-2);
+    }
   }
 }
 
@@ -173,5 +322,25 @@ function goBack() {
   text-align: center;
   font-size: 0.08rem;
   color: #bbb;
+}
+
+.import-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.06rem;
+}
+
+.tt-confirm-text {
+  font-size: 0.09rem;
+  color: var(--ui-text);
+  margin: 0.02rem 0;
+}
+
+/* 桌面端（≥1024px）：100vw 全屏布局 + 四周留白 */
+@media (min-width: 64em) {
+  .tt-container {
+    width: 100vw;
+    padding: 0.05rem 0.12rem;
+  }
 }
 </style>

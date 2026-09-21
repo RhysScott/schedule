@@ -48,4 +48,15 @@ const route = useRoute();
     }
   }
 }
+
+/* 桌面端（≥1024px）：TabBar 收矮、图标收小，避免被 rem 基准放大后过高 */
+@media (min-width: 64em) {
+  .tab-bar {
+    height: 0.32rem;
+  }
+  .tab-bar .tab-item svg {
+    width: 0.16rem;
+    height: 0.16rem;
+  }
+}
 </style>

@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import MyView from '../views/MyView.vue'
 import TimetablesView from '../views/TimetablesView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import OrgView from '../views/OrgView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+    },
+    {
+      path: '/orgs',
+      name: 'orgs',
+      component: OrgView,
     },
   ],
 })

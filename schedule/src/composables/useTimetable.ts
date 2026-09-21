@@ -1,4 +1,5 @@
 import { computed, reactive, ref } from "vue";
+import { fetchTimetables } from "@/api";
 import type {
   CourseSegment,
   RenderCourse,
@@ -114,8 +115,8 @@ function getWeekDates(): string[] {
   return dates;
 }
 
-/** 学生学期课表数据（课程为中心 + 时间段片段 + 选课状态） */
-export const enrollment: StudentEnrollment = {
+/** 学生学期课表数据（课程为中心 + 时间段片段 + 选课状态）——后端未启动时的内置回退数据 */
+const FALLBACK_ENROLLMENT: StudentEnrollment = {
   studentId: "ST001",
   studentName: "张三",
   term: "2026秋季学期",
@@ -446,7 +447,7 @@ export const enrollment: StudentEnrollment = {
     {
       studentCourseId: "SC012",
       courseId: "C012",
-      courseName: "毛概线上",
+      courseName: "毛概",
       credit: 2,
       teacher: "",
       campus: "主校区",
@@ -471,7 +472,7 @@ export const enrollment: StudentEnrollment = {
     {
       studentCourseId: "SC013",
       courseId: "C013",
-      courseName: "大英(免修)",
+      courseName: "大英",
       credit: 4,
       teacher: "方海蘇",
       campus: "主校区",
@@ -496,7 +497,7 @@ export const enrollment: StudentEnrollment = {
     {
       studentCourseId: "SC014",
       courseId: "C014",
-      courseName: "习概线上",
+      courseName: "习概",
       credit: 2,
       teacher: "",
       campus: "主校区",
@@ -549,8 +550,8 @@ export interface TimetableEntry {
  * 多份课表：追加一份就把数据放到这里，
  * 右上角标签 + 切换按钮会自动生效
  */
-export const timetables: TimetableEntry[] = [
-  { owner: "我的", enrollment: enrollment },
+const FALLBACK_TIMETABLES: TimetableEntry[] = [
+  { owner: "我的", enrollment: FALLBACK_ENROLLMENT },
   {
     // TODO: 示例课表，替换成宝宝的真实课表数据
     owner: "宝宝",
@@ -689,24 +690,42 @@ export const timetables: TimetableEntry[] = [
   },
 ];
 
+/** 课表列表（后端为权威数据源；后端未启动时回退到内置数据） */
+export const timetables = ref<TimetableEntry[]>(FALLBACK_TIMETABLES);
+
+/** 从后端加载全部课表 */
+export async function loadTimetables() {
+  try {
+    const data = await fetchTimetables();
+    if (data.length) {
+      timetables.value = data;
+      if (currentTimetableIndex.value >= data.length) {
+        currentTimetableIndex.value = 0;
+      }
+    }
+  } catch (e) {
+    console.warn("后端未启动，使用内置课表数据：", e);
+  }
+}
+
 /** 当前展示的课表下标 */
 export const currentTimetableIndex = ref(0);
 
 /** 当前课表数据（渲染统一使用它） */
 export const activeEnrollment = computed(
-  () => timetables[currentTimetableIndex.value]!.enrollment,
+  () => timetables.value[currentTimetableIndex.value]!.enrollment,
 );
 
 /** 当前课表标签 */
 export const currentOwner = computed(
-  () => timetables[currentTimetableIndex.value]!.owner,
+  () => timetables.value[currentTimetableIndex.value]!.owner,
 );
 
 /** 切换课表：循环切换；只有一份时不生效 */
 export function switchTimetable() {
-  if (timetables.length < 2) return;
+  if (timetables.value.length < 2) return;
   currentTimetableIndex.value =
-    (currentTimetableIndex.value + 1) % timetables.length;
+    (currentTimetableIndex.value + 1) % timetables.value.length;
 }
 
 /**

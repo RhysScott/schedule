@@ -1,0 +1,6 @@
+node_modules/
+dist/
+schedule/backend/timetable.db
+schedule/backend/data.json
+*.log
+.DS_Store
