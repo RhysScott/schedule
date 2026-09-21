@@ -118,6 +118,7 @@ const colors = [
 
 // 按选课记录ID稳定分配颜色，同一门课（多个时间段）始终同一个颜色
 const cardColor = computed(() => {
+  if (props.course.color) return props.course.color;
   const text = props.course.studentCourseId;
   let hash = 0;
   for (let i = 0; i < text.length; i++) {

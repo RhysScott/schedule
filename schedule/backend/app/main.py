@@ -271,7 +271,7 @@ def _encode_code(timetable: Timetable) -> str:
 def _decode_code(code: str) -> Dict[str, Any]:
     """课表码解码为字典；失败抛 400"""
     try:
-        compressed = base64.urlsafe_b64decode(code.encode("ascii"))
+        compressed = base64.urlsafe_b64decode(code.encode("ascii") + b"=" * (-len(code) % 4))
         raw = zlib.decompress(compressed).decode("utf-8")
         data = json.loads(raw)
         if not isinstance(data, dict) or "courses" not in data:
@@ -426,14 +426,41 @@ def share_code(index: int) -> Dict[str, str]:
         return {"code": t.share_code}
 
 
+@app.get("/api/jw-proxy")
+def jw_proxy(url: str):
+    """教务系统课表接口代理：前端跨域抓取（仅允许 http/https 地址）。"""
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="仅支持 http/https 地址")
+    import urllib.request
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = resp.read()
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"抓取失败: {e}")
+    try:
+        return json.loads(body)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail="返回内容不是有效 JSON")
+
 @app.post("/api/timetables/import")
-def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
+def import_timetable(request: Request, payload: ImportPayload) -> Dict[str, Any]:
     """用课表码（UUID）导入：
     mode=copy 仅拷贝数据（独立课表）
     mode=sync 同步导入（引用源课表，实时跟随更新）
     """
+    from .schemas import CourseIn
+
     code = payload.code.strip()
     mode = payload.mode or "copy"
+    try:
+        user = _current_user(request)
+    except HTTPException:
+        user = None
     with SessionLocal() as db:
         src = db.scalar(select(Timetable).where(Timetable.share_code == code))
         if src is None:
@@ -443,6 +470,7 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
             except HTTPException:
                 raise HTTPException(status_code=404, detail="课表码不存在")
             t = Timetable(
+                user_id=user.id if user else None,
                 owner=data.get("owner") or "导入课表",
                 student_id=data.get("studentId", ""),
                 student_name=data.get("studentName", ""),
@@ -451,13 +479,12 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
                 total_weeks=int(data.get("totalWeeks") or 16),
                 share_code=str(uuid.uuid4()),
             )
-            from .schemas import CourseIn
-
             for c in data.get("courses", []):
                 _apply_course(db, t, CourseIn.model_validate(c))
         elif mode == "sync":
             # 同步导入：不复制课程，记录源表引用，读取时实时展开
             t = Timetable(
+                user_id=user.id if user else None,
                 owner=(src.owner or "同步课表") + "·同步",
                 student_id=src.student_id,
                 student_name=src.student_name,
@@ -471,6 +498,7 @@ def import_timetable(payload: ImportPayload) -> Dict[str, Any]:
         else:
             # 仅拷贝：复制源课表为新课表（独立数据）
             t = Timetable(
+                user_id=user.id if user else None,
                 owner=src.owner or "导入课表",
                 student_id=src.student_id,
                 student_name=src.student_name,

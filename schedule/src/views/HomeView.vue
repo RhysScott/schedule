@@ -82,18 +82,19 @@
         </div>
       </template>
     </div>
-    <!-- 右下角悬浮添加按钮 -->
+    <!-- 右下角悬浮按钮：导入课表（教务在线 / 教务 JSON / 课表码） -->
     <UiButton
       circle
       variant="primary"
       class="fab"
-      title="添加课程"
-      @click="onAddClick"
+      title="导入课表"
+      @click="importShow = true"
     >
       <template #icon>
         <Plus />
       </template>
     </UiButton>
+    <ImportModal :show="importShow" @update:show="importShow = $event" />
     <!-- 添加/编辑课程弹窗 -->
     <CourseFormModal
       :show="courseModalShow"
@@ -120,6 +121,7 @@ import {
 import TimetableHeader from "@/components/TimetableHeader.vue";
 import TimetableCell from "@/components/TimetableCell.vue";
 import CourseFormModal from "@/components/CourseFormModal.vue";
+import ImportModal from "@/components/ImportModal.vue";
 import type { CourseFormPayload } from "@/components/CourseFormModal.vue";
 import type { StudentCourse } from "@/types/course";
 import {
@@ -280,10 +282,8 @@ async function handleCourseSave(payload: CourseFormPayload) {
   }
 }
 
-// 悬浮添加按钮：打开添加课程弹窗
-function onAddClick() {
-  openAdd();
-}
+// 悬浮按钮：打开导入课表弹窗
+const importShow = ref(false);
 
 // 存在单节课程时增高行，保证卡片文字完整不截断
 // 课表异步加载完成后需要重算，因此用 computed

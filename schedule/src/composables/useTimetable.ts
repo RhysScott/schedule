@@ -9,11 +9,13 @@ import {
 } from "@/api";
 import { currentUser, isLoggedIn } from "@/composables/useAuth";
 import type {
+  CourseMode,
   CourseSegment,
   RenderCourse,
   StudentCourse,
   StudentEnrollment,
   TimetableSettings,
+  WeekType,
 } from "@/types/course";
 
 const SETTINGS_STORAGE_KEY = "timetable-settings-v1";
@@ -881,6 +883,8 @@ export async function fetchShareCode(timetableIndex: number): Promise<string> {
     studentId: t.enrollment.studentId,
     studentName: t.enrollment.studentName,
     term: t.enrollment.term,
+    termStartDate: t.enrollment.termStartDate,
+    totalWeeks: t.enrollment.totalWeeks,
     courses: t.enrollment.courses,
   };
   return compressText(JSON.stringify(payload));
@@ -1049,6 +1053,7 @@ const weekSchedule = computed<DaySchedule[]>(() => {
         status: sc.enrollStatus,
         startPeriod: seg.periodStart,
         endPeriod: seg.periodEnd,
+        color: sc.color,
       };
     }
   }
@@ -1140,3 +1145,105 @@ export function useTimetable() {
 export type TimetableRow =
   | { type: "period"; sIndex: number; period: [number, number] }
   | { type: "break"; label: string };
+
+
+/* ============ 教务系统导入（在线 / JSON 文件） ============ */
+
+/** 解析教务周次串："1-16周" / "2-3周,5-6周,8-9周" / 含"单/双" */
+function parseJwWeeks(
+  weekStr: string,
+): { weekStart: number; weekEnd: number; weekType: WeekType }[] {
+  const out: { weekStart: number; weekEnd: number; weekType: WeekType }[] = [];
+  let weekType: WeekType = "all";
+  if (/单/.test(weekStr)) weekType = "odd";
+  else if (/双/.test(weekStr)) weekType = "even";
+  const clean = weekStr.replace(/[周]/g, "").split(",");
+  for (const part of clean) {
+    const m = part.match(/(\d+)\s*-\s*(\d+)/);
+    if (!m || m.length < 3) continue;
+    out.push({ weekStart: +m[1]!, weekEnd: +m[2]!, weekType });
+  }
+  return out;
+}
+
+/** 从 "1-16周[讲授]/郑胡宇[主讲]" 提取老师 */
+function parseJwTeacher(weeksAndTeachers: string): string {
+  const part = weeksAndTeachers.split("/").pop() ?? "";
+  return part.replace(/\[.*\]$/, "").trim();
+}
+
+/** 解析教务系统课表 JSON（datas.arrangedList 结构），返回可直接导入的 enrollment 数据 */
+export function parseJwData(data: any): {
+  studentName: string;
+  studentId: string;
+  term: string;
+  termStartDate: string;
+  totalWeeks: number;
+  courses: StudentCourse[];
+} {
+  const datas = data?.datas ?? data ?? {};
+  const arr: any[] = Array.isArray(datas.arrangedList) ? datas.arrangedList : [];
+  // datas.name 形如 "王明鑫[24016021425]"
+  const nameMatch = String(datas.name ?? "").match(/^(.+?)\[(\d+)\]/);
+  const studentName = nameMatch?.[1] ?? "";
+  const studentId = nameMatch?.[2] ?? "";
+
+  const courses: StudentCourse[] = [];
+  for (const it of arr) {
+    const weeksAndTeachers = String(it.weeksAndTeachers ?? "");
+    const weekParts = parseJwWeeks(weeksAndTeachers.split("/")[0] ?? "");
+    const teacher = parseJwTeacher(weeksAndTeachers);
+    const place = String(it.placeName ?? "").trim();
+    const isOnline = /线上/.test(place);
+    const dayOfWeek = Number(it.dayOfWeek) || 1;
+    const periodStart = Number(it.beginSection) || 1;
+    const periodEnd = Number(it.endSection) || periodStart;
+    const segments = (weekParts.length ? weekParts : [{ weekStart: 1, weekEnd: 16, weekType: "all" as WeekType }]).map(
+      (w) => ({
+        segmentId: "",
+        weekStart: w.weekStart,
+        weekEnd: w.weekEnd,
+        weekType: w.weekType,
+        dayOfWeek,
+        periodStart,
+        periodEnd,
+        room: isOnline ? "" : place,
+        mode: (isOnline ? "online" : "offline") as CourseMode,
+        remark: isOnline ? "线上授课" : "",
+      }),
+    );
+    courses.push({
+      studentCourseId: "",
+      courseId: "",
+      courseName: String(it.courseName ?? "未知课程"),
+      credit: Number(it.credit) || 0,
+      teacher,
+      campus: "",
+      enrollStatus: "normal",
+      sourceCourseId: null,
+      approveRemark: "",
+      color: /^#[0-9a-fA-F]{6}$/.test(String(it.color ?? "")) ? String(it.color) : undefined,
+      segments,
+    });
+  }
+  return {
+    studentName,
+    studentId,
+    term: "",
+    termStartDate: "",
+    totalWeeks: 16,
+    courses,
+  };
+}
+
+/** 导入教务数据（在线抓取 / JSON 文件共用）：解析 → 编码为课表码 → 走统一导入 */
+export async function importJwData(data: any): Promise<{
+  timetables: TimetableEntry[];
+  index: number;
+}> {
+  const parsed = parseJwData(data);
+  if (!parsed.courses.length) throw new Error("教务数据中没有课程");
+  const payload = { owner: "教务导入", ...parsed };
+  const code = await compressText(JSON.stringify(payload));
+  return importTimetable(code, "copy");
+}

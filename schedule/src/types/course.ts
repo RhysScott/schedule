@@ -32,6 +32,8 @@ export interface StudentCourse {
   enrollStatus: EnrollStatus;
   sourceCourseId: string | null;
   approveRemark: string;
+  /** 教务系统原始颜色（如 #FFF0CC），导入时透传 */
+  color?: string;
   segments: CourseSegment[];
 }
 
@@ -58,6 +60,8 @@ export interface RenderCourse {
   status: EnrollStatus; // 渲染时用于特殊状态（免修/置换/退课）置灰标记
   startPeriod: number;
   endPeriod: number;
+  /** 教务系统原始颜色，优先于默认调色板 */
+  color?: string;
 }
 
 /** 特殊状态/授课方式的置灰标记开关 */
