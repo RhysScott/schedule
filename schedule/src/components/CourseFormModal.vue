@@ -21,7 +21,7 @@
           <UiSelect v-model="form.enrollStatus" :options="statusOptions" />
         </UiFormItem>
 
-      <div class="form-section">时间安排，可添加多个时间段</div>
+      <div class="form-section">上课时间，可添加多个时间段</div>
       <div
         v-for="(seg, idx) in form.segments"
         :key="idx"
@@ -42,15 +42,9 @@
             </template>
           </UiButton>
         </div>
-        <UiFormItem label="星期几">
-          <UiRadioGroup
-            v-model="seg.dayOfWeek"
-            :options="dayOptions"
-            :disabled="isLocked(idx)"
-          />
-          <span v-if="isLocked(idx)" class="lock-tip">
-            从课表位置进入，不可修改
-          </span>
+        <!-- 从课表格子进入时位置已确定，星期几直接跟随格子，不再展示该选项 -->
+        <UiFormItem v-if="!isLocked(idx)" label="星期几">
+          <UiRadioGroup v-model="seg.dayOfWeek" :options="dayOptions" />
         </UiFormItem>
         <div class="form-row">
           <UiFormItem label="开始节次" class="half">
