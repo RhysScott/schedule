@@ -26,10 +26,10 @@ const el = ref<HTMLDivElement | null>(null);
 const hiddenCount = ref(0);
 let ro: ResizeObserver | null = null;
 
-const NAME_LINE = 0.13; // 0.1rem * 1.3 line-height
-const META_LINE = 0.0975; // 0.075rem * 1.3
-const PAD_V = 0.07; // 0.035rem * 2
-const GAP = 0.01;
+const NAME_LINE = 0.1144; // 0.088rem * 1.3 line-height
+const META_LINE = 0.0845; // 0.065rem * 1.3
+const PAD_V = 0.056; // 0.028rem * 2
+const GAP = 0.008;
 
 function measure() {
   const c = el.value;
@@ -179,8 +179,8 @@ const cardStyle = computed(() =>
   flex-direction: column;
   /* 顶部对齐：内容超高一侧（底部）溢出，避免上下各裁一半 */
   justify-content: flex-start;
-  gap: 0.01rem;
-  padding: 0.035rem 0.055rem;
+  gap: 0.008rem;
+  padding: 0.028rem 0.05rem;
   border-radius: 0.06rem;
   overflow: hidden;
   line-height: 1.3;
@@ -198,7 +198,7 @@ const cardStyle = computed(() =>
 }
 /* 课程名：主信息，略大加粗；空间足够时允许换行，不省略 */
 .course-name {
-  font-size: 0.1rem;
+  font-size: 0.088rem;
   font-weight: bold;
   overflow: hidden;
   /* 默认占满整卡宽度；仅当右上角有状态角标时才让位（避免 tag 挤压标题空间） */
@@ -209,7 +209,7 @@ const cardStyle = computed(() =>
 }
 /* 教室/老师：次信息，小号弱化；空间足够时允许换行，不省略 */
 .course-meta {
-  font-size: 0.075rem;
+  font-size: 0.065rem;
   opacity: 0.72;
   overflow: hidden;
 }

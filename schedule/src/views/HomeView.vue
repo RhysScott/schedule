@@ -316,9 +316,9 @@ const rowHeight = computed(() => {
   const breakCount = rowList.value.length - rows;
   if (!rows) return "0.4rem";
   // 固定开销：顶栏 + 表头 + 午/晚休行 + 容器留白 + tabbar
-  const fixed = 1.5 + breakCount * 0.25 + 0.2;
+  const fixed = 1.35 + breakCount * 0.18 + 0.15;
   const remBase = parseFloat(getComputedStyle(document.documentElement).fontSize) || 170;
-  const rem = Math.max(0.38, (vh.value / remBase - fixed) / rows);
+  const rem = Math.max(0.22, (vh.value / remBase - fixed) / rows);
   // 必须带 rem 单位：无单位的 height 在 CSS 中无效，会导致行高塌缩、跨节次卡片错位
   return rem.toFixed(3) + "rem";
 });
