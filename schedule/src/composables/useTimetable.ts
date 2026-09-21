@@ -674,12 +674,27 @@ function emptyTimetable(owner = "我的"): TimetableEntry {
  */
 const LOCAL_STORAGE_KEY = "timetables-local-v2";
 
+/** 是否是早期内置的示例假课表（张三/宝宝），加载时直接丢弃，避免残留假数据 */
+function isFakeExample(entry: TimetableEntry): boolean {
+  const e = entry?.enrollment;
+  if (!e) return false;
+  if (e.studentId === "ST001" && e.studentName === "张三") return true;
+  if (e.studentId === "ST002" && e.studentName === "宝宝") return true;
+  return false;
+}
+
 function loadLocalTimetables(): TimetableEntry[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      if (Array.isArray(data) && data.length) return data;
+      if (Array.isArray(data) && data.length) {
+        const cleaned = data.filter((t) => !isFakeExample(t));
+        if (cleaned.length !== data.length) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleaned));
+        }
+        return cleaned;
+      }
     }
   } catch {
     /* 忽略损坏数据 */
