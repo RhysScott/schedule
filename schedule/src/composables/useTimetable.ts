@@ -7,7 +7,7 @@ import {
   importTimetable as apiImportTimetable,
   updateCourse as apiUpdateCourse,
 } from "@/api";
-import { isLoggedIn } from "@/composables/useAuth";
+import { currentUser, isLoggedIn } from "@/composables/useAuth";
 import type {
   CourseSegment,
   RenderCourse,
@@ -716,7 +716,14 @@ export async function loadTimetables() {
     const data = await fetchTimetables();
     if (data.length) {
       cloudTimetables.value = data;
-      if (currentTimetableIndex.value >= data.length) {
+      // 默认激活登录用户自己的课表（owner 与用户名一致，如 rscoot 的王明鑫课表），
+      // 避免把别人的示例课表顶到最前
+      const own = data.findIndex(
+        (t) => t.owner === currentUser.value?.username,
+      );
+      if (own >= 0) {
+        currentTimetableIndex.value = own;
+      } else if (currentTimetableIndex.value >= data.length) {
         currentTimetableIndex.value = 0;
       }
     }
@@ -898,6 +905,13 @@ export async function importTimetable(
 
 /** 当前展示的课表下标 */
 export const currentTimetableIndex = ref(0);
+
+/** 当前课表标签（owner，如"我的"/"rscoot"） */
+export const activeOwner = computed(() => {
+  const t = timetables.value[currentTimetableIndex.value];
+  return t?.owner ?? "";
+});
+
 
 /** 当前课表数据（渲染统一使用它；空列表时回退到空对象避免崩溃） */
 export const activeEnrollment = computed<StudentEnrollment>(() => {

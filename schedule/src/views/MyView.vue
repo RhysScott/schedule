@@ -38,22 +38,32 @@
       </UiButton>
     </div>
 
-    <div class="avatar">{{ initial }}</div>
-    <div class="name">{{ activeEnrollment.studentName || "未登录" }}</div>
-    <div class="sub">{{ activeEnrollment.term }}</div>
-
-    <div class="info-card">
-      <div class="info-row">
-        <span class="label">学号</span>
-        <span class="value">{{ activeEnrollment.studentId || "-" }}</span>
+    <!-- 当前课表信息卡：课表归属与账号区区分开，避免身份混淆 -->
+    <div class="tt-card">
+      <div class="tt-card__head">
+        <span class="tt-badge">{{ activeOwner }}</span>
+        <span class="tt-label">当前课表</span>
       </div>
-      <div class="info-row">
-        <span class="label">学期</span>
-        <span class="value">{{ activeEnrollment.term || "-" }}</span>
+      <div class="tt-card__body">
+        <div class="avatar">{{ initial }}</div>
+        <div class="tt-main">
+          <div class="name">{{ activeEnrollment.studentName || "未命名课表" }}</div>
+          <div class="sub">{{ activeEnrollment.term || "未设置学期" }}</div>
+        </div>
       </div>
-      <div class="info-row">
-        <span class="label">已选课程</span>
-        <span class="value">{{ activeEnrollment.courses.length }} 门</span>
+      <div class="info-card">
+        <div class="info-row">
+          <span class="label">学号</span>
+          <span class="value">{{ activeEnrollment.studentId || "-" }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">学期</span>
+          <span class="value">{{ activeEnrollment.term || "-" }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">已选课程</span>
+          <span class="value">{{ activeEnrollment.courses.length }} 门</span>
+        </div>
       </div>
     </div>
 
@@ -116,7 +126,7 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { UiButton, UiFormItem, UiInput, UiModal, uiMessage } from "@/components/ui";
 import { Settings } from "lucide-vue-next";
-import { activeEnrollment } from "@/composables/useTimetable";
+import { activeEnrollment, activeOwner } from "@/composables/useTimetable";
 import { currentUser, isLoggedIn, login, logout, register } from "@/composables/useAuth";
 
 const router = useRouter();
@@ -266,56 +276,93 @@ async function doLogout() {
   }
 }
 
+.tt-card {
+  width: 86%;
+  margin: 0.14rem auto 0;
+  background: #fff;
+  border: 0.01rem solid #eee;
+  border-radius: 0.1rem;
+  overflow: hidden;
+
+  .tt-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.05rem;
+    padding: 0.06rem 0.12rem;
+    background: #fafbfc;
+    border-bottom: 0.01rem solid #f1f1f1;
+  }
+
+  .tt-badge {
+    font-size: 0.08rem;
+    color: #42b983;
+    background: #e8f7ef;
+    border-radius: 0.04rem;
+    padding: 0.01rem 0.05rem;
+    font-weight: bold;
+  }
+
+  .tt-label {
+    font-size: 0.08rem;
+    color: #999;
+  }
+
+  .tt-card__body {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.12rem;
+  }
+}
 .avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 0.6rem;
-  height: 0.6rem;
+  width: 0.56rem;
+  height: 0.56rem;
   border-radius: 50%;
   background: #e2f0cb;
   color: #5a8a4e;
-  font-size: 0.26rem;
+  font-size: 0.24rem;
   font-weight: bold;
-  margin-top: 0.2rem;
+  flex-shrink: 0;
 }
-
+.tt-main {
+  min-width: 0;
+}
 .name {
-  margin-top: 0.08rem;
-  font-size: 0.14rem;
+  font-size: 0.15rem;
   font-weight: bold;
   color: #333;
 }
-
 .sub {
-  margin-top: 0.02rem;
-  font-size: 0.08rem;
+  margin-top: 0.03rem;
+  font-size: 0.085rem;
   color: #999;
 }
-
 .info-card {
-  width: 82%;
-  margin-top: 0.18rem;
-  border-radius: 0.08rem;
-  background: #fff;
-  border: 0.01rem solid #eee;
-  padding: 0.04rem 0.1rem;
+  border-top: 0.01rem solid #f2f2f2;
+  padding: 0.02rem 0.12rem;
 
   .info-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.07rem 0;
+    align-items: center;
+    min-height: 0.32rem;
+    padding: 0.03rem 0;
 
     &:not(:last-child) {
-      border-bottom: 0.01rem solid #f3f3f3;
+      border-bottom: 0.01rem solid #f7f7f7;
     }
 
     .label {
       color: #999;
+      font-size: 0.09rem;
     }
 
     .value {
       color: #333;
+      font-size: 0.09rem;
     }
   }
 }
